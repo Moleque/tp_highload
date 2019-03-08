@@ -14,100 +14,77 @@ int setNonblock(int sockfd) {	// кроссплатформенная устан
 }
 
 
-uv_tcp_t server;	// сокет
-uv_loop_t *loop = uv_default_loop();
+uv_loop_t *loop;
 
-void read_cb(uv_stream_t *stream, ssize_t nread, uv_buf_t buf) {
-	uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
-	uv_write(req, stream, &buf, 1, NULL);
-	free(buf.base);
+
+void alloc_buffer(uv_handle_t *handle, size_t size, uv_buf_t *buf) {
+	buf->base = (char*)malloc(size);
+	buf->len = size;
 }
 
-uv_buf_t alloc_buffer(uv_handle_t *handle, size_t size) {
-	return uv_buf_init((char*)malloc(size), size);
+void socket_write_cb(uv_write_t *req, int status) {
+    if (status) {
+        fprintf(stderr, "Write error %s\n", uv_strerror(status));
+    }
+
+    free(req);
 }
 
-void connection_cb(uv_stream_t *server, int status) {
+void read_cb(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {	// колбек на чтение данных
+	if (nread < 0) {
+		if (nread != UV_EOF) {
+			fprintf(stderr, "Read error %s\n", uv_err_name(nread));
+		}
+		uv_close((uv_handle_t*)client, NULL);
+	} else if (nread > 0) {
+		uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
+		uv_buf_t write_buf = uv_buf_init(buf->base, nread);
+
+		uv_write(req, client, &write_buf, 1, socket_write_cb);
+	}
+
+	printf("read\n");
+	if (buf->base) {
+		free(buf->base);
+	}
+}
+
+void newConnectionCB(uv_stream_t *server, int status) {	// колбек на подключение нового клиента
+	if (status < 0) {
+		fprintf(stderr, "New connection error %s\n", uv_strerror(status));
+		return;
+	}
+	printf("connection\n");
+
 	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
 	uv_tcp_init(loop, client);
-	uv_accept(server, (uv_stream_t*)client);
-	uv_read_start((uv_stream_t*)client, (uv_alloc_cb)alloc_buffer, (uv_read_cb)read_cb);
+	if (!uv_accept(server, (uv_stream_t*)client)) {	// клиент подсоединился
+		uv_read_start((uv_stream_t*)client, alloc_buffer, (uv_read_cb)read_cb);
+	} else {
+		uv_close((uv_handle_t*)client, NULL);
+	}
 }
 
-Server::Server(const unsigned short port/*, const std::string dir*/) {
+Server::Server(const char *ip, const unsigned short port/*, const std::string dir*/) {
+	loop = uv_default_loop();
+	
 	struct sockaddr_in address;
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = htonl(INADDR_ANY);
-	address.sin_port = htons(port);
-	uv_ip4_addr("0.0.0.0", port, &address);
+	uv_ip4_addr(ip, port, &address);
 
 	uv_tcp_init(loop, &server);
 	uv_tcp_bind(&server, (struct sockaddr*)&address, 0);
-	uv_listen((uv_stream_t*)&server, 128, connection_cb);
-
+	uv_listen((uv_stream_t*)&server, CONNECTIONS_COUNT, newConnectionCB);
+	printf("start\n");
 	uv_run(loop, UV_RUN_DEFAULT);
-
-	// std::set<int> clients;
-    // int sockfd = socket(AF_INET, SOCK_STREAM, 0);	// создание сокета
-	// if (!sockfd) {
-	// 	std::cout << "Cannot create listening socket" << std::endl;
-	// }
-
-    // int opt = 1;
-	// if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {	// 
-	// 	std::cout << "Cannot install listen socket" << std::endl;
-	// 	close(sockfd);
-	// }
-	// // TODO: добавить ограничение на время ожидания чтения или конекта
-	// // memset(&address, 0, sizeof(address));
-	
-	// struct sockaddr_in address;
-	// address.sin_family = AF_INET;
-	// address.sin_addr.s_addr = htonl(INADDR_ANY);
-	// address.sin_port = htons(port);
-	// if (bind(sockfd, (struct sockaddr *)&address, sizeof(address))) {	// соединение сокета с ip адресом
-	// 	std::cout << "Ошибка настройки слушающего сокета." << std::endl;
-	// 	close(sockfd);
-	// }
-
-	// if (setNonblock(sockfd) == -1) {	// установка сокета неблокирующим
-    //     std::cout << "Cannot set listening socket to nonblock" << std::endl;
-    //     close(sockfd);
-    // }
-	// if (listen(sockfd, SOMAXCONN) < 0) {	// прослушивание сокета
-	// 	std::cout << "Ошибка создания очереди." << std::endl;
-	// 	close(sockfd);
-	// }
-
-
 }
 
 Server::~Server(){
 }
 
-void Server::start(){
-	// if (WSAStartup(MAKEWORD(2, 2), &wData) == 0)
-	// {
-	// 	printf("WSA Startup succes\n");
-	// }
-	// SOCKADDR_IN addr;
-	// int addrl = sizeof(addr);
-	// addr.sin_addr.S_un.S_addr = INADDR_ANY;
-	// addr.sin_port = htons(port);
-	// addr.sin_family = AF_INET;
-	// this_s = socket(AF_INET, SOCK_STREAM, NULL);
-	// if (this_s == SOCKET_ERROR) {
-	// 	printf("Socket not created\n");
-	// }
-
-	// if (bind(this_s, (struct sockaddr*)&addr, sizeof(addr)) != SOCKET_ERROR) {
-	// 	printf("Socket succed binded\n");
-	// }
-
-	// if (listen(this_s, SOMAXCONN) != SOCKET_ERROR){
-	// 	printf("Start listenin at port%u\n", ntohs(addr.sin_port));
-	// }
-	// handle();
+void Server::start() {
+	printf("test\n");
+	uv_loop_close(loop);
+	free(loop);
 }
 
 void Server::closeS() {

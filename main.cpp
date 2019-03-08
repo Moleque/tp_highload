@@ -5,7 +5,7 @@
 #define THREADS 2
 
 int main(int argc, char **argv) {
-    Server *server = new Server(PORT);
+    Server *server = new Server("0.0.0.0", PORT);
     std::cout << "Hi" << std::endl;
 
     int v;

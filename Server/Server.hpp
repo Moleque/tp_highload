@@ -15,23 +15,26 @@
 
 // #include <sys/epoll.h>
 
+#include <uv.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <uv.h>
 
-
-#define MAX_EV  2048
+#define CONNECTIONS_COUNT  128
 
 class Server {
     public:
-        Server(const unsigned short);
+        Server(const char*, const unsigned short);
         ~Server();
         void start();
         void closeS();
         void handle();
         // unsigned short port;
     private:
+        // void newConnectionCB(uv_stream_t*, int);
         int sockfd;
+
+        uv_tcp_t server;	// сокет
+        // uv_loop_t *loop;
     //     WSAData wData;
 };
 
