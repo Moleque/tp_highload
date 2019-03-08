@@ -1,65 +1,119 @@
 #include "Server.hpp"
 
-int setNonblock(int sockfd) {	// кроссплатформенная установка неблокирующего сокета
-	int flags;
-	#if defined (O_NONBLOCK)
-		if ((flags = fcntl(sockfd, F_GETFL, 0)) == -1) {
-			flags = 0;
-		}
-		return fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
-	#else
-		flags = 1;
-		return ioctl(fd, FIOBIO, &flags);
-	#endif
-}
-
 
 uv_loop_t *loop;
 
-
-void alloc_buffer(uv_handle_t *handle, size_t size, uv_buf_t *buf) {
+// колбек на аллокацию
+void allocBufferCB(uv_handle_t *handle, size_t size, uv_buf_t *buf) {
 	buf->base = (char*)malloc(size);
 	buf->len = size;
 }
 
-void socket_write_cb(uv_write_t *req, int status) {
+void socketWriteCB(uv_write_t *req, int status) {
     if (status) {
         fprintf(stderr, "Write error %s\n", uv_strerror(status));
     }
-
     free(req);
 }
 
-void read_cb(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {	// колбек на чтение данных
+// колбек на чтение данных
+void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
+	printf("read\n");
 	if (nread < 0) {
 		if (nread != UV_EOF) {
 			fprintf(stderr, "Read error %s\n", uv_err_name(nread));
 		}
 		uv_close((uv_handle_t*)client, NULL);
 	} else if (nread > 0) {
-		uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
-		uv_buf_t write_buf = uv_buf_init(buf->base, nread);
+		printf(buf->base);
+		// httpParse(buf->base);
 
-		uv_write(req, client, &write_buf, 1, socket_write_cb);
+		uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
+		uv_buf_t writeBuf = uv_buf_init(buf->base, nread);
+		uv_write(req, client, &writeBuf, 1, socketWriteCB);
 	}
 
-	printf("read\n");
 	if (buf->base) {
 		free(buf->base);
 	}
+
+
+
+	// response_id = http_parse(&http_request, bufferevent_get_input(bev), root_dir);
+    // switch (response_id) {
+    //     case NOT_ALLOWED_HTTP_METHOD :
+    //         createResponse("405", "Not Implemented", response);
+    //         printf("405 ERROR\n");
+    //         break;
+    //     case FILE_NOT_EXIST :
+    //         createResponse("404", "Not found", response);
+    //         printf("404 ERROR\n");
+    //         break;
+    //     case FILE_IS_EXECUTABLE :
+    //         create_response("500", "Internal server error", response);
+    //         printf("500 ERROR\n");
+    //         break;
+    //     case ALL_OK :
+    //         create_response("200", "OK", response);
+    //         printf("200 OK\n");
+    //         break;
+    //     case ESCAPING_ROOT :
+    //         printf("403 ERROR\n");
+    //         create_response("403", "Forbidden", response);
+    //         break;
+    //     case PARSE_ERROR : 
+    //         printf("PARSE ERROR\n");
+    //     	create_response("400", "Bad request", response);
+    //         break;
+    //     case INDEX_FILE_NOT_EXIST:
+    //         printf("INDEX ERROR\n");
+    //         create_response("403", "Forbidden", response);
+    //         break;
+    //     default:
+    //         printf("DEFAULT 500 ERROR\n");
+    //         create_response("500", "Internal server error", response);
+    //         break;
+    // }
+
+    // printf("content-length\n");
+
+    // if (response_id == ALL_OK) {
+    //     sprintf(response + strlen(response), "Content-Length: %lu\r\n", http_request.filesize);
+    //     sprintf(response + strlen(response), "Content-Type: %s\r\n\r\n", http_request.filetype);
+    // }
+
+    // evbuffer_add(client->output_buffer, response, strlen(response));
+    // printf("client buffer filled\n");
+    // if (strcmp(http_request.method, "GET") == 0 && response_id == ALL_OK) {
+    //     int fd = open(http_request.filename, O_RDONLY, 0);
+    //     evbuffer_add_file(client->output_buffer, fd, 0, http_request.filesize);
+    // }
+    // if(strcmp(http_request.method, "HEAD") == 0){
+    //     printf("HEAD request\n%s", response);
+    // }
+    // bufferevent_disable(bev, EV_READ);
+    // bufferevent_enable(bev, EV_WRITE);
+	// /* Send the results to the client.  This actually only queues the results for sending.
+	//  * Sending will occur asynchronously, handled by libevent. */
+	// if (bufferevent_write_buffer(bev, client->output_buffer) != 0) {
+    //     printf("bufferevent error\n");
+    //     closeClient(client);
+    // }
+
+    //struct timeval delay = { 1e };
 }
 
-void newConnectionCB(uv_stream_t *server, int status) {	// колбек на подключение нового клиента
-	if (status < 0) {
+// колбек на подключение нового клиента
+void newConnectionCB(uv_stream_t *server, int status) {
+	if (status < 0) {	// проверка на наличие ошибок
 		fprintf(stderr, "New connection error %s\n", uv_strerror(status));
 		return;
 	}
-	printf("connection\n");
 
-	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
+	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));	// создание сокета клиента
 	uv_tcp_init(loop, client);
-	if (!uv_accept(server, (uv_stream_t*)client)) {	// клиент подсоединился
-		uv_read_start((uv_stream_t*)client, alloc_buffer, (uv_read_cb)read_cb);
+	if (!uv_accept(server, (uv_stream_t*)client)) {	// присоединение клиента
+		uv_read_start((uv_stream_t*)client, allocBufferCB, readCB);	// ожидание чтения
 	} else {
 		uv_close((uv_handle_t*)client, NULL);
 	}
@@ -79,12 +133,13 @@ Server::Server(const char *ip, const unsigned short port/*, const std::string di
 }
 
 Server::~Server(){
-}
-
-void Server::start() {
 	printf("test\n");
 	uv_loop_close(loop);
 	free(loop);
+}
+
+void Server::start() {
+	
 }
 
 void Server::closeS() {

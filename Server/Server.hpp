@@ -1,23 +1,11 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-// #include <iostream>
-// #include <sys/types.h>
-// #include <sys/socket.h>
-// #include <netinet/in.h>
-
-// #include <unistd.h>
-// #include <fcntl.h>
-// #include <cstring>
-
-// #include <set>
-// #include <algorithm>
-
-// #include <sys/epoll.h>
-
 #include <uv.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+// #include "Parser.hpp"
 
 #define CONNECTIONS_COUNT  128
 
@@ -30,8 +18,11 @@ class Server {
         void handle();
         // unsigned short port;
     private:
+        // void allocBufferCB(uv_handle_t*, size_t, uv_buf_t*);
+        // void readCB(uv_stream_t*, ssize_t, const uv_buf_t*);
+        // void socketWriteCB(uv_write_t*, int);
         // void newConnectionCB(uv_stream_t*, int);
-        int sockfd;
+        // int sockfd;
 
         uv_tcp_t server;	// сокет
         // uv_loop_t *loop;
