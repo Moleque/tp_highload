@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #include "Parser.hpp"
+#include "Parser.hpp"
 
 #define CONNECTIONS_COUNT  128
 
@@ -26,7 +26,6 @@ class Server {
 
         uv_tcp_t server;	// сокет
         // uv_loop_t *loop;
-    //     WSAData wData;
 };
 
 #endif  // SERVER_HPP

@@ -25,8 +25,7 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 		}
 		uv_close((uv_handle_t*)client, NULL);
 	} else if (nread > 0) {
-		printf(buf->base);
-		// httpParse(buf->base);
+		parseHttp(buf->base);
 
 		uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
 		uv_buf_t writeBuf = uv_buf_init(buf->base, nread);
@@ -36,71 +35,6 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 	if (buf->base) {
 		free(buf->base);
 	}
-
-
-
-	// response_id = http_parse(&http_request, bufferevent_get_input(bev), root_dir);
-    // switch (response_id) {
-    //     case NOT_ALLOWED_HTTP_METHOD :
-    //         createResponse("405", "Not Implemented", response);
-    //         printf("405 ERROR\n");
-    //         break;
-    //     case FILE_NOT_EXIST :
-    //         createResponse("404", "Not found", response);
-    //         printf("404 ERROR\n");
-    //         break;
-    //     case FILE_IS_EXECUTABLE :
-    //         create_response("500", "Internal server error", response);
-    //         printf("500 ERROR\n");
-    //         break;
-    //     case ALL_OK :
-    //         create_response("200", "OK", response);
-    //         printf("200 OK\n");
-    //         break;
-    //     case ESCAPING_ROOT :
-    //         printf("403 ERROR\n");
-    //         create_response("403", "Forbidden", response);
-    //         break;
-    //     case PARSE_ERROR : 
-    //         printf("PARSE ERROR\n");
-    //     	create_response("400", "Bad request", response);
-    //         break;
-    //     case INDEX_FILE_NOT_EXIST:
-    //         printf("INDEX ERROR\n");
-    //         create_response("403", "Forbidden", response);
-    //         break;
-    //     default:
-    //         printf("DEFAULT 500 ERROR\n");
-    //         create_response("500", "Internal server error", response);
-    //         break;
-    // }
-
-    // printf("content-length\n");
-
-    // if (response_id == ALL_OK) {
-    //     sprintf(response + strlen(response), "Content-Length: %lu\r\n", http_request.filesize);
-    //     sprintf(response + strlen(response), "Content-Type: %s\r\n\r\n", http_request.filetype);
-    // }
-
-    // evbuffer_add(client->output_buffer, response, strlen(response));
-    // printf("client buffer filled\n");
-    // if (strcmp(http_request.method, "GET") == 0 && response_id == ALL_OK) {
-    //     int fd = open(http_request.filename, O_RDONLY, 0);
-    //     evbuffer_add_file(client->output_buffer, fd, 0, http_request.filesize);
-    // }
-    // if(strcmp(http_request.method, "HEAD") == 0){
-    //     printf("HEAD request\n%s", response);
-    // }
-    // bufferevent_disable(bev, EV_READ);
-    // bufferevent_enable(bev, EV_WRITE);
-	// /* Send the results to the client.  This actually only queues the results for sending.
-	//  * Sending will occur asynchronously, handled by libevent. */
-	// if (bufferevent_write_buffer(bev, client->output_buffer) != 0) {
-    //     printf("bufferevent error\n");
-    //     closeClient(client);
-    // }
-
-    //struct timeval delay = { 1e };
 }
 
 // колбек на подключение нового клиента
