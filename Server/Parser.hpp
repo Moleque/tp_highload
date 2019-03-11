@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <cstdlib>
 
 #include "status.hpp"
 
@@ -25,6 +26,8 @@ struct Http {
     char method[REQUEST];
     char uri[REQUEST];
     char version[REQUEST];
+    char filename[REQUEST];
+    char mimetype[REQUEST];
 };
 
 

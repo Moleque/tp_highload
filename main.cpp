@@ -1,7 +1,7 @@
 #include "iostream"
 #include "./Server/Server.hpp"
 
-#define PORT 7373
+#define PORT 80
 #define THREADS 2
 
 int main(int argc, char **argv) {
