@@ -6,9 +6,9 @@
 #include <fstream>
 
 struct Settings {
-    unsigned cpu;
-    unsigned thread;
-    std::string root;
+    unsigned short cpu = 4;
+    unsigned short thread = 256;
+    std::string root = "/var/www/html";
 };
 
 int parseConfig(const std::string, struct Settings*);

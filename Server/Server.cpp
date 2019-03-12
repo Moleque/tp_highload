@@ -18,14 +18,15 @@ void socketWriteCB(uv_write_t *req, int status) {
 
 // колбек на чтение данных
 void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
-	printf("read\n");
+	std::cout << "read" << std::endl;
 	if (nread < 0) {
 		if (nread != UV_EOF) {
-			fprintf(stderr, "Read error %s\n", uv_err_name(nread));
+			std::cerr << "read error " << uv_err_name(nread) << std::endl;
 		}
 		uv_close((uv_handle_t*)client, NULL);
 	} else if (nread > 0) {
-		parseHttp(buf->base);
+		Http request(buf->base);
+		request.getResponse();
 
 		uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
 		uv_buf_t writeBuf = uv_buf_init(buf->base, nread);
@@ -40,7 +41,7 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 // колбек на подключение нового клиента
 void newConnectionCB(uv_stream_t *server, int status) {
 	if (status < 0) {	// проверка на наличие ошибок
-		fprintf(stderr, "New connection error %s\n", uv_strerror(status));
+		std::cerr << "new connection error " << uv_strerror(status) << std::endl;
 		return;
 	}
 
@@ -53,21 +54,21 @@ void newConnectionCB(uv_stream_t *server, int status) {
 	}
 }
 
-Server::Server(const char *ip, const unsigned short port/*, const std::string dir*/) {
+Server::Server(const std::string ip, const unsigned short port/*, const std::string dir*/) {
 	loop = uv_default_loop();
 	
 	struct sockaddr_in address;
-	uv_ip4_addr(ip, port, &address);
+	uv_ip4_addr(ip.c_str(), port, &address);
 
 	uv_tcp_init(loop, &server);
 	uv_tcp_bind(&server, (struct sockaddr*)&address, 0);
 	uv_listen((uv_stream_t*)&server, CONNECTIONS_COUNT, newConnectionCB);
-	printf("start\n");
+	std::cout << "start" << std::endl;
 	uv_run(loop, UV_RUN_DEFAULT);
 }
 
 Server::~Server(){
-	printf("test\n");
+	std::cout << "test" << std::endl;
 	uv_loop_close(loop);
 	free(loop);
 }

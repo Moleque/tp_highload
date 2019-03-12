@@ -1,6 +1,10 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
+#include <iostream>
+#include <sstream>
+#include <fstream>
+
 #include <stdio.h>
 #include <string.h>
 #include <cstdlib>
@@ -18,19 +22,31 @@
 //     size_t filesize;
 // } http_t;
 
-#define RESPONSE    1024
-#define REQUEST     1024
-
-// структура запроса к серверу
-struct Http {
-    char method[REQUEST];
-    char uri[REQUEST];
-    char version[REQUEST];
-    char filename[REQUEST];
-    char mimetype[REQUEST];
+struct Request {
+    std::string data;
+    std::string method;
+    std::string uri;
+    std::string version;
+    std::string filename;
+    std::string mimetype;
 };
 
+struct Response {
+    std::string data;
+};
 
-int parseHttp(const char*);
+// структура запроса к серверу
+class Http {
+    public:
+        Http(const std::string);
+        std::string getResponse();
+    private:
+        Request request;
+        Response response;
+
+        // std::string request;
+        // std::string response;
+        int parseHttp();
+};
 
 #endif  // PARSER_HPP

@@ -1,18 +1,13 @@
 #include "Parser.hpp"
 
-void get_uri_without_parameters(char *src, char *dest, int len) {
-    char *ptr = strchr(src, '?');
-    if (ptr) {
-        len = ptr - src;
-    }
-    strncpy(dest, src, len);
-    dest[len] = '\0';
+Http::Http(const std::string request) {
+    this->request.data = request;
 }
 
 void decode_uri(char *src, char *dest, int len) {
     char *p = src;
     char code[3] = {0};
-    while (*p != '\0' && --len) {
+    while (*p != '\0'){// && --len) {
         if (*p == '%') {
             memcpy(code, ++p, 2);
             *dest++ = (char) strtoul(code, NULL, 16);
@@ -33,93 +28,97 @@ char parserMIME() {
 
 }
 
-int parseHttp(const char *buffer) {
-    // printf("%s", buffer);
-        
-    // struct evbuffer *event_buffer = client_buffer;
-    // struct stat sbuf;     /* file status */
-    // size_t line_size = LINE_BUFSIZE;
+int Http::parseHttp() {
+    // char test[] = "/sadfdsf/asd/adsfdasf.js?ksadkfj%hsajfhjsdfh%fjshajhfsadhjhfs%fhajhsadjf";
+    // char temp[strlen(test)];
+    // decode_uri(test, temp, strlen(test));
+    // std::cout << temp << std::endl;
 
-
-    /* get the HTTP request line */
-    // if(strcpy(request.buf, evbuffer_readln(event_buffer, &line_size, EVBUFFER_EOL_CRLF)) == NULL) {
-    //     return PARSE_ERROR;
+    // получение метода, request.uri и версию протокола
+    // if ((sscanf(request.data.c_str(), "%s %s %s\n", request.method, request.uri, request.version)) < 3) {
+    //     return -1;
     // }
 
-
-    struct Http request;
-
-    // получение метода, uri и версию протокола
-    if ((sscanf(buffer, "%s %s %s\n", request.method, request.uri, request.version)) < 3) {
-        return -1;
-    }
+    std::istringstream stream(request.data);
+    stream >> request.method >> request.uri >> request.version;
 
     // проверка метода на валидность
-    if (strcmp(request.method, "GET") && strcmp(request.method, "HEAD")) {
+    if (request.method != "GET" && request.method != "HEAD") {
         return METHOD_NOT_ALLOWED;
     }
 
 
-    // парсер uri
-    if (!strstr(request.uri, "cgi-bin")) {
-        // strcpy(request.cgiargs, "");
-        strcpy(request.filename, "");//root_dir);
+    // парсер request.uri
+    if (!request.uri.find("cgi-bin")) {
+        // strcpy(cgiargs, "");
+        request.filename = "";//root_dir);
 
-        if (strstr(request.uri, "%")) {
-            // printf("uri decoding\n");
-            decode_uri(request.uri, request.uri, strlen(request.uri));
-            printf("URI = %s\n", request.uri);
-        }
-        if (strstr(request.uri, "?")) {
-            printf("uri need to be reed out of parametres\n");
-            char temp[strlen(request.uri)];
-            get_uri_without_parameters(request.uri, temp, strlen(request.uri));
-            strcpy(request.uri, temp);
-            printf("URI = %s\n", request.uri);
-        }
+        // if (strstr(request.uri.c_str(), "%")) {
+        //     // printf("request.uri decoding\n");
+        //     char ss[request.uri.length()] = request.uri.c_str();
+        //     char tmp[500];
+        //     decode_uri(ss, tmp, request.uri.length());
+        //     // printf("URI = %s\n", request.uri);
+        // }
 
-        strcat(request.filename, request.uri);
-        if (request.uri[strlen(request.uri)-1] == '/') {
-            strcat(request.filename, "index.html");
-            // if (stat(request.filename, &sbuf) < 0) {
-            //     return INDEX_FILE_NOT_EXIST;
-            // }
+        request.uri = request.uri.substr(0, request.uri.find('?')); // получить uri без параметров
+        std::cout << "URI = " << request.uri << std::endl;
+
+        request.filename += request.uri;
+        if (request.uri[request.uri.length()-1] == '/') {
+            request.filename += "index.html";
         }
     }
 
-    printf("%s\n", request.filename);
+    std::cout << request.filename << std::endl;
 
-    // if ((strstr(request.filename, "/..")) != NULL) {
-    //     return ESCAPING_ROOT;
-    // }
+    if (request.filename.find("/..")) {
+        return -1;
+    }
+
     // /* make sure the file exists */
-    // if (stat(request.filename, &sbuf) < 0) {
+    // if (stat(filename, &sbuf) < 0) {
     //     return FILE_NOT_EXIST;
     // }
 
     /* serve static content */
-    if (strstr(request.filename, ".html")) {
-        strcpy(request.mimetype, "text/html");
-    } else if (strstr(request.filename, ".css")) {
-        strcpy(request.mimetype, "text/css");
-    } else if (strstr(request.filename, ".js")) {
-        strcpy(request.mimetype, "application/javascript");
-    } else if (strstr(request.filename, ".jpg")) {
-        strcpy(request.mimetype, "image/jpeg");
-    } else if (strstr(request.filename, ".jpeg")) {
-        strcpy(request.mimetype, "image/jpeg");
-    } else if (strstr(request.filename, ".png")) {
-        strcpy(request.mimetype, "image/png");
-    } else if (strstr(request.filename, ".gif")) {
-        strcpy(request.mimetype, "image/gif");
-    } else if (strstr(request.filename, ".swf")) {
-        strcpy(request.mimetype, "application/x-shockwave-flash");
+    if (request.filename.find(".html")) {
+        request.mimetype = "text/html";
+    } else if (request.filename.find(".css")) {
+        request.mimetype = "text/css";
+    } else if (request.filename.find(".js")) {
+        request.mimetype = "application/javascript";
+    } else if (request.filename.find(".jpg")) {
+        request.mimetype = "image/jpeg";
+    } else if (request.filename.find(".jpeg")) {
+        request.mimetype = "image/jpeg";
+    } else if (request.filename.find(".png")) {
+        request.mimetype = "image/png";
+    } else if (request.filename.find(".gif")) {
+        request.mimetype = "image/gif";
+    } else if (request.filename.find(".swf")) {
+        request.mimetype = "application/x-shockwave-flash";
     }
 
-    // request.filesize = (size_t) sbuf.st_size;
+    std::cout << request.mimetype << std::endl;
+
+    // filesize = (size_t) sbuf.st_size;
     // if (!(S_ISREG(sbuf.st_mode))) {
     //     return FILE_IS_EXECUTABLE;
     // }
 
     return 0;//ALL_OK;
 }
+
+// std::string Http::getResponse() {
+//     parseHttp();
+//     // return "sdf";
+//     response = "HTTP/1.1 " + response.status + " " + response.status_msg + "\r\n";
+//     response += "Server: HLserver\r\n";
+//     response += "Connection: close\r\n";
+//     char buf[TIME_BUFSIZE];
+//     time_t now = time(NULL);
+//     struct tm tm = *gmtime(&now);
+//     strftime(buf, sizeof(buf), "%a, %d, %b, %Y %H:%M:%S %Z", &tm);
+//     response += "Date: %s\r\n";
+// }

@@ -2,6 +2,8 @@
 #define SERVER_HPP
 
 #include <uv.h>
+#include <iostream>
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -11,7 +13,7 @@
 
 class Server {
     public:
-        Server(const char*, const unsigned short);
+        Server(const std::string, const unsigned short);
         ~Server();
         void start();
         void closeS();
