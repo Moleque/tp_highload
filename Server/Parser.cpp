@@ -29,18 +29,12 @@ char parserMIME() {
 }
 
 int Http::parseHttp() {
-    // char test[] = "/sadfdsf/asd/adsfdasf.js?ksadkfj%hsajfhjsdfh%fjshajhfsadhjhfs%fhajhsadjf";
-    // char temp[strlen(test)];
-    // decode_uri(test, temp, strlen(test));
-    // std::cout << temp << std::endl;
-
-    // получение метода, request.uri и версию протокола
-    // if ((sscanf(request.data.c_str(), "%s %s %s\n", request.method, request.uri, request.version)) < 3) {
-    //     return -1;
-    // }
-
+    // получение метода, uri и версии протокола
     std::istringstream stream(request.data);
     stream >> request.method >> request.uri >> request.version;
+    if (request.method.empty() || request.uri.empty() || request.version.empty()) {
+        return -1;
+    }
 
     // проверка метода на валидность
     if (request.method != "GET" && request.method != "HEAD") {
@@ -49,7 +43,7 @@ int Http::parseHttp() {
 
 
     // парсер request.uri
-    if (!request.uri.find("cgi-bin")) {
+    // if (!request.uri.find("cgi-bin") != std::string::npos) {
         // strcpy(cgiargs, "");
         request.filename = "";//root_dir);
 
@@ -68,57 +62,61 @@ int Http::parseHttp() {
         if (request.uri[request.uri.length()-1] == '/') {
             request.filename += "index.html";
         }
-    }
+    // }
 
-    std::cout << request.filename << std::endl;
+    std::cout << "File = " << request.filename << std::endl;
 
-    if (request.filename.find("/..")) {
+    if (request.filename.find("/..") != std::string::npos) {
         return -1;
     }
-
     // /* make sure the file exists */
     // if (stat(filename, &sbuf) < 0) {
     //     return FILE_NOT_EXIST;
     // }
 
-    /* serve static content */
-    if (request.filename.find(".html")) {
-        request.mimetype = "text/html";
-    } else if (request.filename.find(".css")) {
-        request.mimetype = "text/css";
-    } else if (request.filename.find(".js")) {
-        request.mimetype = "application/javascript";
-    } else if (request.filename.find(".jpg")) {
-        request.mimetype = "image/jpeg";
-    } else if (request.filename.find(".jpeg")) {
-        request.mimetype = "image/jpeg";
-    } else if (request.filename.find(".png")) {
-        request.mimetype = "image/png";
-    } else if (request.filename.find(".gif")) {
-        request.mimetype = "image/gif";
-    } else if (request.filename.find(".swf")) {
-        request.mimetype = "application/x-shockwave-flash";
+    // определение mime-типа
+    for (auto type : mimeTypes) {
+        if (request.filename.find(type.format) != std::string::npos) {
+            std::cout << type.format << std::endl;
+            request.mimetype = type.mime;
+        }
     }
 
-    std::cout << request.mimetype << std::endl;
+    
+
+    std::cout << "Mime = " << request.mimetype << std::endl;
 
     // filesize = (size_t) sbuf.st_size;
     // if (!(S_ISREG(sbuf.st_mode))) {
     //     return FILE_IS_EXECUTABLE;
     // }
 
-    return 0;//ALL_OK;
+    return OK;
 }
 
-// std::string Http::getResponse() {
-//     parseHttp();
-//     // return "sdf";
-//     response = "HTTP/1.1 " + response.status + " " + response.status_msg + "\r\n";
-//     response += "Server: HLserver\r\n";
-//     response += "Connection: close\r\n";
-//     char buf[TIME_BUFSIZE];
-//     time_t now = time(NULL);
-//     struct tm tm = *gmtime(&now);
-//     strftime(buf, sizeof(buf), "%a, %d, %b, %Y %H:%M:%S %Z", &tm);
-//     response += "Date: %s\r\n";
-// }
+std::string Http::parseTime(const time_t time) {
+    char buf[80];
+    struct tm tm = *gmtime(&time);
+    strftime(buf, sizeof(buf), "%a, %d, %b, %Y %H:%M:%S %Z", &tm);
+    return std::string(buf);
+}
+
+std::string Http::getResponse() {
+    if (response.data.empty()) {
+        response.status = std::to_string(parseHttp());
+        response.phrase = "OK";
+        response.data = "HTTP/1.1 " + response.status + " " + response.phrase + "\r\n";
+        response.data += "Server: MLQ/0.1.2\r\n";
+        response.data += "Connection: close\r\n";
+        
+        time_t now = time(NULL);
+        response.date = parseTime(now);
+        response.data += "Date: " + response.date + "\r\n";
+
+        if (response.status == std::to_string(OK)) {
+            response.data += "Content-Length: " + response.length + "\r\n";
+            response.data += "Content-Type: " + request.mimetype + "\r\n";
+        }
+    }
+    return response.data;
+}

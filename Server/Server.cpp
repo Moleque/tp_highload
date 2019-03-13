@@ -26,10 +26,12 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 		uv_close((uv_handle_t*)client, NULL);
 	} else if (nread > 0) {
 		Http request(buf->base);
-		request.getResponse();
+		std::cout << buf->base;
+		std::string response = request.getResponse();
+		std::cout << response;
 
 		uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
-		uv_buf_t writeBuf = uv_buf_init(buf->base, nread);
+		uv_buf_t writeBuf = uv_buf_init(const_cast<char*>(response.c_str()), response.length());
 		uv_write(req, client, &writeBuf, 1, socketWriteCB);
 	}
 
@@ -81,26 +83,4 @@ void Server::closeS() {
 	// closesocket(this_s);
 	// WSACleanup();
 	// cout << "Server was stoped. You can close app" << endl;
-}
-
-
-void Server::handle() {
-// 	while (true)
-// 	{
-// 		SOCKET acceptS;
-// 		SOCKADDR_IN addr_c;
-// 		int addrlen = sizeof(addr_c);
-// 		if ((acceptS = accept(this_s, (struct sockaddr*)&addr_c, &addrlen)) != 0) {
-// 			printf("send\n");
-// 			printf("sended Client connected from 0  %u.%u.%u.%u:%u\n",
-// 				(unsigned char)addr_c.sin_addr.S_un.S_un_b.s_b1,
-// 				(unsigned char)addr_c.sin_addr.S_un.S_un_b.s_b2,
-// 				(unsigned char)addr_c.sin_addr.S_un.S_un_b.s_b3,
-// 				(unsigned char)addr_c.sin_addr.S_un.S_un_b.s_b4,
-// 				ntohs(addr_c.sin_port));
-// 			SClient* client = new SClient(acceptS, addr_c);
-
-// 		}
-// 		Sleep(50);
-// 	}
 }

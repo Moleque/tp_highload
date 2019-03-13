@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <vector>
 
 #include <stdio.h>
 #include <string.h>
@@ -22,6 +23,23 @@
 //     size_t filesize;
 // } http_t;
 
+struct types {
+    const std::string format;
+    const std::string mime;
+};
+
+const std::vector<types> mimeTypes = {
+    { ".html", "text/html" },
+    { ".css", "text/css" },
+    { ".js", "application/javascript" },
+    { ".jpg", "image/jpeg" },
+    { ".jpeg", "image/jpeg" },
+    { ".png", "image/png" },
+    { ".gif", "image/gif" },
+    { ".swf", "application/x-shockwave-flash" },
+};
+
+
 struct Request {
     std::string data;
     std::string method;
@@ -33,6 +51,10 @@ struct Request {
 
 struct Response {
     std::string data;
+    std::string status;
+    std::string phrase;
+    std::string date;
+    std::string length;
 };
 
 // структура запроса к серверу
@@ -47,6 +69,7 @@ class Http {
         // std::string request;
         // std::string response;
         int parseHttp();
+        std::string parseTime(const time_t);
 };
 
 #endif  // PARSER_HPP
