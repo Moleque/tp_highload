@@ -4,30 +4,17 @@
 #include <uv.h>
 #include <iostream>
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "Parser.hpp"
 
 #define CONNECTIONS_COUNT  128
 
 class Server {
     public:
-        Server(const std::string, const unsigned short);
+        Server(const std::string, const unsigned short, const std::string);
         ~Server();
-        void start();
-        void closeS();
-        void handle();
-        // unsigned short port;
     private:
-        // void allocBufferCB(uv_handle_t*, size_t, uv_buf_t*);
-        // void readCB(uv_stream_t*, ssize_t, const uv_buf_t*);
-        // void socketWriteCB(uv_write_t*, int);
-        // void newConnectionCB(uv_stream_t*, int);
-        // int sockfd;
-
         uv_tcp_t server;	// сокет
-        // uv_loop_t *loop;
+        // std::string root;
 };
 
 #endif  // SERVER_HPP

@@ -6,8 +6,10 @@
 #include <fstream>
 #include <vector>
 
-#include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 #include <cstdlib>
 
 #include "status.hpp"
@@ -46,7 +48,6 @@ struct Request {
     std::string uri;
     std::string version;
     std::string filename;
-    std::string mimetype;
 };
 
 struct Response {
@@ -54,21 +55,21 @@ struct Response {
     std::string status;
     std::string phrase;
     std::string date;
-    std::string length;
+    std::string mimetype;
+    size_t length;
 };
 
 // структура запроса к серверу
 class Http {
     public:
-        Http(const std::string);
+        Http(const std::string, const std::string);
         std::string getResponse();
     private:
         Request request;
         Response response;
 
-        // std::string request;
-        // std::string response;
         int parseHttp();
+        std::string parseFile(const std::string, const size_t);
         std::string parseTime(const time_t);
 };
 

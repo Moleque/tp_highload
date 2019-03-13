@@ -2,8 +2,9 @@
 #include "./Settings/Config.hpp"
 #include "./Server/Server.hpp"
 
-#define PORT 8080
-#define THREADS 2
+#define IP "0.0.0.0"
+#define PORT 80
+#define ROOT "."
 
 #define CFG_PATH "./httpd.conf"
 
@@ -14,7 +15,7 @@ int main(int argc, char **argv) {
         std::cerr << "config file not found\nset default setting" << std::endl;
     }
 
-    Server *server = new Server("0.0.0.0", PORT);
+    Server *server = new Server(IP, PORT, ROOT);
     std::cout << "Hi" << std::endl;
 
     int v;
