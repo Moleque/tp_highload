@@ -55,15 +55,18 @@ int Http::parseHttp() {
     // }
 
     if (request.filename.find("/..") != std::string::npos) {
-        return -1;
+        // response.length = 0;
+        return FORBIDDEN;
     }
     
     // std::cout << "File: " << request.filename;
     // проверка существования файла
+    std::cout << request.filename << std::endl;
+
     struct stat fileStat;
     if (stat(request.filename.c_str(), &fileStat) < 0) {
-        response.length = 0;
-        return -1;
+        // response.length = 0;
+        return NOT_FOUND;
     }
 
     // определение mime-типа
@@ -109,8 +112,10 @@ std::string Http::parseFile(const std::string filename, const size_t length) {
 
 std::string Http::getResponse() {
     if (response.data.empty()) {
-        response.status = std::to_string(parseHttp());
-        response.phrase = "OK";
+        int status = parseHttp();
+        response.status = std::to_string(status);
+        response.phrase = statusPhrase.at(status);
+
         response.data = "HTTP/1.1 " + response.status + " " + response.phrase + "\r\n";
         response.data += "Server: MLQ/0.1.2\r\n";
         response.data += "Connection: close\r\n";

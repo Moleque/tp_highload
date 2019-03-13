@@ -4,9 +4,8 @@
 
 #define IP "0.0.0.0"
 #define PORT 80
-#define ROOT "."
 
-#define CFG_PATH "./httpd.conf"
+#define CFG_PATH "/etc/httpd.conf"
 
 
 int main(int argc, char **argv) {
@@ -15,7 +14,7 @@ int main(int argc, char **argv) {
         std::cerr << "config file not found\nset default setting" << std::endl;
     }
 
-    Server *server = new Server(IP, PORT, ROOT);
+    Server *server = new Server(IP, PORT, config.root);
     std::cout << "Hi" << std::endl;
 
     int v;

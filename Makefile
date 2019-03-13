@@ -18,7 +18,7 @@ Config.o:
 	$(CXX) -c ./Settings/Config.cpp $(LIBS) $(GDB)
 
 
-test: server
+test:
 	docker stop $$(docker ps -a -q)
 	docker build -t salman .
 	docker rm salman-server

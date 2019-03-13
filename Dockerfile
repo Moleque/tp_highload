@@ -11,6 +11,8 @@ RUN apt-get -y update
 RUN apt-get -y install libuv1.dev
 RUN apt-get -y install make
 
+WORKDIR /home/server
+
 ADD . .
 RUN make
 

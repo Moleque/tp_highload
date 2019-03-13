@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <cstdlib>
 
-#include "status.hpp"
+#include "Status.hpp"
 
 // typedef struct http {
 //     char method[REQUEST_BUFSIZE];  /* request method */
@@ -56,7 +56,7 @@ struct Response {
     std::string phrase;
     std::string date;
     std::string mimetype;
-    size_t length;
+    size_t length = 0;
 };
 
 // структура запроса к серверу
