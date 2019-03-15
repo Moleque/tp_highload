@@ -10,7 +10,6 @@
 
 struct Worker {
     unsigned short int id;
-    bool flag = false;
     uv_thread_t thread;
     uv_loop_t *loop;
 };
@@ -21,6 +20,8 @@ class Server {
     private:
         unsigned short threadsCount;
         uv_tcp_t server;	// сокет
+        std::vector<Worker> workers;
+
         // std::string root;
 
         // void threadCB();

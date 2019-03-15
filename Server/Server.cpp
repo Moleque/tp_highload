@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-std::vector<Worker> workers;
+// std::vector<Worker> workers;
 
 unsigned int current = 0;
 uv_loop_t *loop;
@@ -65,24 +65,25 @@ void newConnectionCB(uv_stream_t *server, int status) {
 }
 
 void idlerCB(uv_idle_t *handle) {
-	// while () {
-
-	// }
-	// if (worker)
+	Worker *worker = (Worker*)handle->data;
+	// std::cout << worker->id;
 }
 
 void threadCB(void *arg) {
 	Worker *worker = (Worker*)arg;
 	worker->loop = (uv_loop_t*)malloc(sizeof(uv_loop_t));
 	uv_loop_init(worker->loop);
+	std::cerr << "thCB" << worker->id << std::endl;
 	
 	uv_idle_t idler;
+	idler.data = worker;
 	uv_idle_init(worker->loop, &idler);
 	uv_idle_start(&idler, idlerCB);
 	
 	uv_run(worker->loop, UV_RUN_DEFAULT);
 	uv_loop_close(worker->loop);
 	free(worker->loop);
+	std::cerr << "test" << std::endl;
 }
 
 Server::Server(const std::string ip, const unsigned short port, const std::string dir, const unsigned short threadsCount) {
@@ -102,7 +103,7 @@ Server::Server(const std::string ip, const unsigned short port, const std::strin
 		worker.id = i;
 		workers.push_back(worker);
 		uv_thread_create(&worker.thread, threadCB, &worker);
-		std::cout << "thread " << i << " was started" << std::endl;
+		std::cout << "thread " << worker.id << " was started" << std::endl;
 	}
 	uv_run(loop, UV_RUN_DEFAULT);
 }
