@@ -99,27 +99,37 @@ std::string Http::parseTime(const time_t time) {
 }
 
 std::string Http::parseFile(const std::string filename, const size_t length) {
-    std::string fileContent;
+    // std::string fileContent;
     
-    int file = open(filename.c_str(), O_RDONLY);
-    if (file < 0) {
-        return fileContent;
-    }
+    // int file = open(filename.c_str(), O_RDONLY);
+    // if (file < 0) {
+    //     return fileContent;
+    // }
 
-    char *map = (char*)mmap(0, length, PROT_READ, MAP_SHARED, file, 0);
-    if (map == MAP_FAILED) {
-        close(file);
-        return fileContent;
-    }
+    // char *map = (char*)mmap(0, length, PROT_READ, MAP_SHARED, file, 0);
+    // if (map == MAP_FAILED) {
+    //     close(file);
+    //     return fileContent;
+    // }
 
-    fileContent = map;
+    // fileContent = map;
 
-    if (munmap(map, length) == -1) {
-        close(file);
-        return fileContent;
-    }
-    close(file);
-    return fileContent; 
+    // if (munmap(map, length) == -1) {
+    //     close(file);
+    //     return fileContent;
+    // }
+    // close(file);
+    // return fileContent; 
+
+
+    std::ifstream in(filename, std::ios::binary);
+    char *buffer = new char[length];
+    in.read(buffer, length);
+    response.data += buffer;
+    // std::cout <<
+    in.close();
+    delete buffer;
+    return "";
 }
 
 std::string Http::getResponse() {

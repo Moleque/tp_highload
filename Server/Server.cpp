@@ -1,8 +1,12 @@
 #include "Server.hpp"
 
+std::vector<Worker> workers;
 
+unsigned int current = 0;
 uv_loop_t *loop;
 std::string root;
+
+
 
 // колбек на аллокацию
 void allocBufferCB(uv_handle_t *handle, size_t size, uv_buf_t *buf) {
@@ -50,6 +54,7 @@ void newConnectionCB(uv_stream_t *server, int status) {
 		return;
 	}
 
+	std::cerr << "new connection" << std::endl;
 	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));	// создание сокета клиента
 	uv_tcp_init(loop, client);
 	if (!uv_accept(server, (uv_stream_t*)client)) {	// присоединение клиента
@@ -59,7 +64,29 @@ void newConnectionCB(uv_stream_t *server, int status) {
 	}
 }
 
-Server::Server(const std::string ip, const unsigned short port, const std::string dir) {
+void idlerCB(uv_idle_t *handle) {
+	// while () {
+
+	// }
+	// if (worker)
+}
+
+void threadCB(void *arg) {
+	Worker *worker = (Worker*)arg;
+	worker->loop = (uv_loop_t*)malloc(sizeof(uv_loop_t));
+	uv_loop_init(worker->loop);
+	
+	uv_idle_t idler;
+	uv_idle_init(worker->loop, &idler);
+	uv_idle_start(&idler, idlerCB);
+	
+	uv_run(worker->loop, UV_RUN_DEFAULT);
+	uv_loop_close(worker->loop);
+	free(worker->loop);
+}
+
+Server::Server(const std::string ip, const unsigned short port, const std::string dir, const unsigned short threadsCount) {
+	this->threadsCount = threadsCount;
 	root = dir;
 	loop = uv_default_loop();
 	
@@ -69,11 +96,13 @@ Server::Server(const std::string ip, const unsigned short port, const std::strin
 	uv_tcp_init(loop, &server);
 	uv_tcp_bind(&server, (struct sockaddr*)&address, 0);
 	uv_listen((uv_stream_t*)&server, CONNECTIONS_COUNT, newConnectionCB);
+	
+	for (int i = 0; i < threadsCount; i++) {
+		Worker worker;
+		worker.id = i;
+		workers.push_back(worker);
+		uv_thread_create(&worker.thread, threadCB, &worker);
+		std::cout << "thread " << i << " was started" << std::endl;
+	}
 	uv_run(loop, UV_RUN_DEFAULT);
-}
-
-Server::~Server(){
-	std::cout << "test" << std::endl;
-	uv_loop_close(loop);
-	free(loop);
 }
