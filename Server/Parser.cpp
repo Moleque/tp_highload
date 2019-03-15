@@ -5,21 +5,6 @@ Http::Http(const std::string request, const std::string root) {
     this->request.filename = root;
 }
 
-void decode_uri(char *src, char *dest, int len) {
-    char *p = src;
-    char code[3] = {0};
-    while (*p != '\0'){// && --len) {
-        if (*p == '%') {
-            memcpy(code, ++p, 2);
-            *dest++ = (char) strtoul(code, NULL, 16);
-            p += 2;
-        } else {
-            *dest++ = *p++;
-        }
-    }
-    *dest = '\0';
-}
-
 int Http::parseHttp() {
     // получение метода, uri и версии протокола
     std::istringstream stream(request.data);
@@ -38,19 +23,23 @@ int Http::parseHttp() {
     // if (!request.uri.find("cgi-bin") != std::string::npos) {
         // strcpy(cgiargs, "");
 
-        // if (strstr(request.uri.c_str(), "%")) {
-        //     // printf("request.uri decoding\n");
-        //     char ss[request.uri.length()] = request.uri.c_str();
-        //     char tmp[500];
-        //     decode_uri(ss, tmp, request.uri.length());
-        //     // printf("URI = %s\n", request.uri);
-        // }
+        if (request.uri.find("%") != std::string::npos) {
+            // printf("request.uri decoding\n");
+            char ss[request.uri.length()];
+            strcpy(ss, request.uri.c_str());
+            char tmp[500];
+            parseUri(ss, tmp, request.uri.length());
+            request.uri = tmp;
+            printf("URI = %s\n", request.uri.c_str());
+        }
 
         request.uri = request.uri.substr(0, request.uri.find('?')); // получить uri без параметров
 
         request.filename += request.uri;
         if (request.uri[request.uri.length()-1] == '/') {
-            request.filename += "index.html";
+            if (request.uri.find(".") == std::string::npos) {
+                request.filename += "index.html";
+            }
         }
     // }
 
@@ -87,6 +76,21 @@ int Http::parseHttp() {
     return OK;
 }
 
+void Http::parseUri(char *src, char *dest, int len) {
+    char *p = src;
+    char code[3] = {0};
+    while (*p != '\0'){// && --len) {
+        if (*p == '%') {
+            memcpy(code, ++p, 2);
+            *dest++ = (char) strtoul(code, NULL, 16);
+            p += 2;
+        } else {
+            *dest++ = *p++;
+        }
+    }
+    *dest = '\0';
+}
+
 std::string Http::parseTime(const time_t time) {
     char buf[80];
     struct tm tm = *gmtime(&time);
@@ -95,19 +99,27 @@ std::string Http::parseTime(const time_t time) {
 }
 
 std::string Http::parseFile(const std::string filename, const size_t length) {
-    char buffer[length];
-
+    std::string fileContent;
+    
     int file = open(filename.c_str(), O_RDONLY);
     if (file < 0) {
-        return buffer;
+        return fileContent;
     }
 
-    void *src;
-    if ((src = mmap(0, length, PROT_READ, MAP_SHARED, file, 0)) == MAP_FAILED) {
-        return buffer;
-    } 
-    memcpy(buffer, src, length);
-    return buffer; 
+    char *map = (char*)mmap(0, length, PROT_READ, MAP_SHARED, file, 0);
+    if (map == MAP_FAILED) {
+        close(file);
+        return fileContent;
+    }
+
+    fileContent = map;
+
+    if (munmap(map, length) == -1) {
+        close(file);
+        return fileContent;
+    }
+    close(file);
+    return fileContent; 
 }
 
 std::string Http::getResponse() {
@@ -128,8 +140,13 @@ std::string Http::getResponse() {
             response.data += "Content-Length: " + std::to_string(response.length) + "\r\n";
             response.data += "Content-Type: " + response.mimetype + "\r\n";
         }
+        response.data += "\r\n";
 
-        response.data += ("\r\n" + parseFile(request.filename, response.length));
+        // const int size = response.data.length();
+        response.data += parseFile(request.filename, response.length);
+        // if (response.data) {
+        //     response.data += res
+        // }
     }
     return response.data;
 }

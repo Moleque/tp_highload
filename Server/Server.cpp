@@ -27,9 +27,9 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 	} else if (nread > 0) {
 		Http request(buf->base, root);
 		std::cout << "===============\n";
-		std::cout << "=== REQUEST ===\n" << buf->base;
+		std::cout << "REQUEST:\n" << buf->base;
 		std::string response = request.getResponse();
-		std::cout << "=== RESPONSE ===\n" << response;
+		std::cout << "RESPONSE:\n" << response;
 		std::cout << "================\n";
 
 

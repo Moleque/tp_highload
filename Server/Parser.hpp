@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <cstdlib>
+#include <unistd.h>
 
 #include "Status.hpp"
 
@@ -69,6 +70,7 @@ class Http {
         Response response;
 
         int parseHttp();
+        void parseUri(char*, char*, int);
         std::string parseFile(const std::string, const size_t);
         std::string parseTime(const time_t);
 };

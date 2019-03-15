@@ -14,6 +14,7 @@ class Server {
         ~Server();
     private:
         uv_tcp_t server;	// сокет
+        // std::vector<thread> threads;
         // std::string root;
 };
 
