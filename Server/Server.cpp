@@ -1,9 +1,5 @@
 #include "Server.hpp"
 
-// std::vector<Worker> workers;
-
-unsigned int current = 0;
-uv_loop_t *loop;
 std::string root;
 
 
@@ -29,21 +25,12 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 		}
 		uv_close((uv_handle_t*)client, NULL);
 	} else if (nread > 0) {
-		Http request(buf->base, root);
-		std::cout << "===============\n";
-		std::cout << "REQUEST:\n" << buf->base;
-		std::string response = request.getResponse();
-		std::cout << "RESPONSE:\n" << response;
-		std::cout << "================\n";
-
-
-		uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
-		uv_buf_t writeBuf = uv_buf_init(const_cast<char*>(response.c_str()), response.length());
-		uv_write(req, client, &writeBuf, 1, socketWriteCB);
-	}
-
-	if (buf->base) {
-		free(buf->base);
+		std::cout << "AAA" << std::endl;
+		Query *queries = (Query*)client->data;
+		
+		uv_mutex_lock(&queries->mutex);
+		queries->queue.push(*buf);
+		uv_mutex_unlock(&queries->mutex);
 	}
 }
 
@@ -56,7 +43,9 @@ void newConnectionCB(uv_stream_t *server, int status) {
 
 	std::cerr << "new connection" << std::endl;
 	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));	// создание сокета клиента
-	uv_tcp_init(loop, client);
+	client->data = server->data;
+
+	uv_tcp_init(server->loop, client);
 	if (!uv_accept(server, (uv_stream_t*)client)) {	// присоединение клиента
 		uv_read_start((uv_stream_t*)client, allocBufferCB, readCB);	// ожидание чтения
 	} else {
@@ -66,14 +55,39 @@ void newConnectionCB(uv_stream_t *server, int status) {
 
 void idlerCB(uv_idle_t *handle) {
 	Worker *worker = (Worker*)handle->data;
-	// std::cout << worker->id;
+	// // std::cout << worker->id;
+
+	// Http request(buf->base, root);
+	// std::cout << "===============\n";
+	// std::cout << "REQUEST:\n" << buf->base;
+	// std::string response = request.getResponse();
+	// std::cout << "RESPONSE:\n" << response;
+	// std::cout << "================\n";
+
+
+	// uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
+	// uv_buf_t writeBuf = uv_buf_init(const_cast<char*>(response.c_str()), response.length());
+	// uv_write(req, client, &writeBuf, 1, socketWriteCB);
+
+	// if (buf->base) {
+	// 	free(buf->base);
+	// }
+	// if (uv_mutex_init())
+	uv_buf_t buf;
+	uv_mutex_lock(&worker->queries->mutex);
+	if (!(worker->queries->queue.empty())) {		
+		buf = worker->queries->queue.front();
+		worker->queries->queue.pop();
+		std::cout << "QUERY-" << worker->id << ": " << buf.base << std::endl;
+	}
+	uv_mutex_unlock(&worker->queries->mutex);
 }
 
 void threadCB(void *arg) {
 	Worker *worker = (Worker*)arg;
 	worker->loop = (uv_loop_t*)malloc(sizeof(uv_loop_t));
 	uv_loop_init(worker->loop);
-	std::cerr << "thCB" << worker->id << std::endl;
+	std::cout << "thCB" << worker->id << "- ok\n" << std::endl;
 	
 	uv_idle_t idler;
 	idler.data = worker;
@@ -94,16 +108,26 @@ Server::Server(const std::string ip, const unsigned short port, const std::strin
 	struct sockaddr_in address;
 	uv_ip4_addr(ip.c_str(), port, &address);
 
+	uv_mutex_init(&queries.mutex);
+	server.data = &queries;
+
 	uv_tcp_init(loop, &server);
 	uv_tcp_bind(&server, (struct sockaddr*)&address, 0);
 	uv_listen((uv_stream_t*)&server, CONNECTIONS_COUNT, newConnectionCB);
 	
 	for (int i = 0; i < threadsCount; i++) {
-		Worker worker;
-		worker.id = i;
+		Worker *worker = new Worker;
+		worker->id = i;
+		worker->queries = &queries;
 		workers.push_back(worker);
-		uv_thread_create(&worker.thread, threadCB, &worker);
-		std::cout << "thread " << worker.id << " was started" << std::endl;
+		uv_thread_create(&worker->thread, threadCB, worker);
+		std::cout << "\nthread " << worker << " was started" << std::endl;
 	}
 	uv_run(loop, UV_RUN_DEFAULT);
+}
+
+Server::~Server() {
+	for (auto worker : workers) {
+		delete worker;
+	}
 }
