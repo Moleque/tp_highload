@@ -10,7 +10,7 @@ int Http::parseHttp() {
     std::istringstream stream(request.data);
     stream >> request.method >> request.uri >> request.version;
     if (request.method.empty() || request.uri.empty() || request.version.empty()) {
-        return -1;
+        return METHOD_NOT_ALLOWED;
     }
 
     // проверка метода на валидность
@@ -30,7 +30,6 @@ int Http::parseHttp() {
             char tmp[500];
             parseUri(ss, tmp, request.uri.length());
             request.uri = tmp;
-            printf("URI = %s\n", request.uri.c_str());
         }
 
         request.uri = request.uri.substr(0, request.uri.find('?')); // получить uri без параметров
@@ -39,6 +38,10 @@ int Http::parseHttp() {
         if (request.uri[request.uri.length()-1] == '/') {
             if (request.uri.find(".") == std::string::npos) {
                 request.filename += "index.html";
+                struct stat isExist;
+                if (stat(request.filename.c_str(), &isExist) < 0) {
+                    return FORBIDDEN;
+                }
             }
         }
     // }
@@ -50,8 +53,6 @@ int Http::parseHttp() {
     
     // std::cout << "File: " << request.filename;
     // проверка существования файла
-    std::cout << request.filename << std::endl;
-
     struct stat fileStat;
     if (stat(request.filename.c_str(), &fileStat) < 0) {
         // response.length = 0;
@@ -138,7 +139,7 @@ std::string Http::getResponse() {
         response.status = std::to_string(status);
         response.phrase = statusPhrase.at(status);
 
-        response.data = "HTTP/1.1 " + response.status + " " + response.phrase + "\r\n";
+        response.data = request.version + " " + response.status + " " + response.phrase + "\r\n";
         response.data += "Server: MLQ/0.1.2\r\n";
         response.data += "Connection: close\r\n";
         

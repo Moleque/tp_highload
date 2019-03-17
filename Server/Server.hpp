@@ -7,7 +7,7 @@
 
 #include "Parser.hpp"
 
-#define CONNECTIONS_COUNT  128
+#define CONNECTIONS_COUNT  1024
 
 struct Query {
     std::queue<std::pair<uv_buf_t, uv_stream_t*>> queue;

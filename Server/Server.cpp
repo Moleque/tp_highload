@@ -14,7 +14,8 @@ void socketWriteCB(uv_write_t *req, int status) {
     if (status) {
         fprintf(stderr, "Write error %s\n", uv_strerror(status));
     }
-    free(req);
+	// uv_close((uv_handle_t*)req->send_handle, NULL);	
+    free(req);	
 }
 
 // колбек на чтение данных
@@ -45,7 +46,8 @@ void newConnectionCB(uv_stream_t *server, int status) {
 		return;
 	}
 
-	std::cerr << "new connection" << std::endl;
+		std::cout << "new connection" << std::endl;
+
 	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));	// создание сокета клиента
 	client->data = server->data;
 
@@ -62,6 +64,7 @@ void idlerCB(uv_idle_t *handle) {
 	// std::cout << worker->id;
 
 	std::pair<uv_buf_t, uv_stream_t*> query;
+	query.first.len = 0;
 	uv_mutex_lock(&worker->queries->mutex);
 	if (!(worker->queries->queue.empty())) {		
 		query = worker->queries->queue.front();
@@ -73,16 +76,16 @@ void idlerCB(uv_idle_t *handle) {
 		// std::cout << "TEST!" << std::endl;;
 
 		Http request(query.first.base, root);
-		std::cout << "===============\n";
-		std::cout << "REQUEST:" << worker->id << "\n" << query.first.base;
+		// std::cout << "===============\n";
+		// std::cout << "REQUEST:" << worker->id << "\n" << query.first.base << std::endl;
 		std::string response = request.getResponse();
-		std::cout << "RESPONSE:\n" << response;
-		std::cout << "================\n";
+		// std::cout << "RESPONSE:\n" << response;
+		// std::cout << "===============\n";
 
 
 		uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
 		uv_buf_t writeBuf = uv_buf_init(const_cast<char*>(response.c_str()), response.length());
-		uv_write(req, query.second, &writeBuf, 1, socketWriteCB);	
+		uv_write(req, query.second, &writeBuf, 1, socketWriteCB);
 	}
 }
 
