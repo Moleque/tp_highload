@@ -3,7 +3,7 @@
 #include "./Server/Server.hpp"
 
 #define IP "0.0.0.0"
-#define PORT 8080
+#define PORT 80
 
 #define CFG_PATH "/etc/httpd.conf"
 

@@ -10,7 +10,7 @@
 #define CONNECTIONS_COUNT  128
 
 struct Query {
-    std::queue<uv_buf_t> queue;
+    std::queue<std::pair<uv_buf_t, uv_stream_t*>> queue;
     uv_mutex_t mutex;
 };
 
