@@ -5,7 +5,6 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
-// #include <ios>
 
 #include <string.h>
 #include <sys/stat.h>
@@ -15,17 +14,6 @@
 #include <unistd.h>
 
 #include "Status.hpp"
-
-// typedef struct http {
-//     char method[REQUEST_BUFSIZE];  /* request method */
-//     char uri[REQUEST_BUFSIZE];     /* request uri */
-//     char version[REQUEST_BUFSIZE]; /* request method */
-//     char filename[REQUEST_BUFSIZE];/* path derived from uri */
-//     char filetype[REQUEST_BUFSIZE];/* path derived from uri */
-//     char cgiargs[REQUEST_BUFSIZE]; /* cgi argument list */
-//     char buf[REQUEST_BUFSIZE];     /* temporary buffer */
-//     size_t filesize;
-// } http_t;
 
 struct types {
     const std::string format;
@@ -67,6 +55,7 @@ class Http {
     public:
         Http(const std::string, const std::string);
         size_t getResponse(char*);
+        std::string getFileContent(const std::string, const size_t);
     private:
         Request request;
         Response response;

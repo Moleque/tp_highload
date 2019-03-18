@@ -47,7 +47,6 @@ int Http::parseHttp() {
     // }
 
     if (request.filename.find("/..") != std::string::npos) {
-        // response.length = 0;
         return FORBIDDEN;
     }
     
@@ -55,7 +54,6 @@ int Http::parseHttp() {
     // проверка существования файла
     struct stat fileStat;
     if (stat(request.filename.c_str(), &fileStat) < 0) {
-        // response.length = 0;
         return NOT_FOUND;
     }
 
@@ -70,9 +68,7 @@ int Http::parseHttp() {
 
 
     response.length = (size_t)fileStat.st_size;
-    // if (!(S_ISREG(sbuf.st_mode))) {
-    //     return FILE_IS_EXECUTABLE;
-    // }
+
 
     return OK;
 }
@@ -100,8 +96,6 @@ std::string Http::parseTime(const time_t time) {
 }
 
 bool Http::parseFile(const std::string filename, char *buffer, const size_t length) {
-    // std::string fileContent;
-    
     int file = open(filename.c_str(), O_RDONLY);
     if (file < 0) {
         return false;
@@ -120,18 +114,34 @@ bool Http::parseFile(const std::string filename, char *buffer, const size_t leng
         return false;
     }
     close(file);
-    return true; 
-
-
-    // std::ifstream in(filename, std::ios::binary);
-    // char *buffer = new char[length];
-    // in.read(buffer, length);
-    // response.data += buffer;
-    // // std::cout <<
-    // in.close();
-    // delete buffer;
-    // return "";
+    return true;
 }
+
+std::string Http::getFileContent(const std::string filename, const size_t length) {
+    std::string fileContent;
+    int file = open(filename.c_str(), O_RDONLY);
+    if (file < 0) {
+        return fileContent;
+    }
+
+    char *map = (char*)mmap(0, length, PROT_READ, MAP_SHARED, file, 0);
+    if (map == MAP_FAILED) {
+        close(file);
+        return fileContent;
+    }
+
+    char buffer[length];
+    memcpy(buffer, map, length);
+    fileContent += buffer;
+
+    if (munmap(map, length) == -1) {
+        close(file);
+        return fileContent;
+    }
+    close(file);
+    return fileContent;
+}
+
 
 size_t Http::getResponse(char *buffer) {
     if (response.data.empty()) {
@@ -147,32 +157,37 @@ size_t Http::getResponse(char *buffer) {
         response.date = parseTime(now);
         response.data += "Date: " + response.date + "\r\n";
 
-        // if (response.status == std::to_string(OK)) {
+        if (response.status == std::to_string(OK)) {
             response.data += "Content-Length: " + std::to_string(response.length) + "\r\n";
             response.data += "Content-Type: " + response.mimetype + "\r\n";
+            response.data += "\r\n";
 
-
-            // if (request.method != "HEAD") {
-                response.data += "\r\n";
+            if (request.method == "GET") {
                 response.size = response.data.size() + response.length;
 
-                // buffer = (char*)malloc(response.size);
                 strcpy(buffer, response.data.c_str());
-                response.data += parseFile(request.filename, buffer, response.length);
-            // } else {
-            // response.data += "Content-Type: " + response.mimetype + "\0";
-        // }
-        //     std::string errMessage = "<html><head><body>Error</body></head></html>\0";
-        //     response.data += "Content-Type: " + std::to_string(errMessage.size()) + "\r\n";
-        //     response.data += "Content-Type: text/html\r\n";
-        //     response.data += "\r\n";
-        //     response.data += errMessage;            
-        // }
-        // const int size = response.data.length();
-        // if (response.data) {
-        //     response.data += res
-        // }
+                std::cout << response.mimetype << std::endl;
+                if (response.mimetype != "text/html" && response.mimetype != "text/css" && response.mimetype != "application/javascript") {
+                    parseFile(request.filename, buffer, response.length);
+                }
+                else {
+                std::cout << "FAIL" << std::endl;
+                    response.data += getFileContent(request.filename, response.length);
+                    buffer = (char*)response.data.c_str();
+                }
+                std::cout << "++\n" << buffer << "++";
+            }
+            else {
+                response.size = response.data.size();
+                buffer = (char*)response.data.c_str();
+            }
+        } 
+        else {
+            response.data += "\r\n";
+            response.size = response.data.size();
+            buffer = (char*)response.data.c_str();
+        }
     }
-    // std::cout << buffer << std::endl;
+    std::cout << buffer << std::endl;
     return response.size;
 }

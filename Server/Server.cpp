@@ -44,8 +44,7 @@ void newConnectionCB(uv_stream_t *server, int status) {
 		std::cerr << "new connection error " << uv_strerror(status) << std::endl;
 		return;
 	}
-
-		std::cout << "new connection" << std::endl;
+	std::cout << "new connection" << std::endl;
 
 	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));	// создание сокета клиента
 	client->data = server->data;
@@ -74,7 +73,7 @@ void idlerCB(uv_idle_t *handle) {
 	if (query.first.base != NULL) {
 		// std::cout << "TEST!" << std::endl;;
 
-		char buffer[10000];
+		char buffer[1000000];
 
 		Http request(query.first.base, root);
 		std::cout << "===============\n";
@@ -90,7 +89,6 @@ void idlerCB(uv_idle_t *handle) {
 		// req->handle = query.second;
 		uv_buf_t writeBuf = uv_buf_init(buffer, size);
 		uv_write(req, query.second, &writeBuf, 1, socketWriteCB);
-		
 	}
 }
 
