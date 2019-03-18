@@ -171,11 +171,9 @@ size_t Http::getResponse(char *buffer) {
                     parseFile(request.filename, buffer, response.length);
                 }
                 else {
-                std::cout << "FAIL" << std::endl;
                     response.data += getFileContent(request.filename, response.length);
                     buffer = (char*)response.data.c_str();
                 }
-                std::cout << "++\n" << buffer << "++";
             }
             else {
                 response.size = response.data.size();
@@ -188,6 +186,5 @@ size_t Http::getResponse(char *buffer) {
             buffer = (char*)response.data.c_str();
         }
     }
-    std::cout << buffer << std::endl;
     return response.size;
 }
