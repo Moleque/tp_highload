@@ -12,10 +12,9 @@ void allocBufferCB(uv_handle_t *handle, size_t size, uv_buf_t *buf) {
 
 void socketWriteCB(uv_write_t *req, int status) {
     if (status) {
-        fprintf(stderr, "Write error %s\n", uv_strerror(status));
+        std::cerr << "Write error " << uv_strerror(status) << std::endl;
     }
-	// uv_close((uv_handle_t*)req->send_handle, NULL);	
-    free(req);	
+    free(req);
 }
 
 // колбек на чтение данных
@@ -64,7 +63,7 @@ void idlerCB(uv_idle_t *handle) {
 	// std::cout << worker->id;
 
 	std::pair<uv_buf_t, uv_stream_t*> query;
-	query.first.len = 0;
+	query.first.base = NULL;
 	uv_mutex_lock(&worker->queries->mutex);
 	if (!(worker->queries->queue.empty())) {		
 		query = worker->queries->queue.front();
@@ -72,20 +71,26 @@ void idlerCB(uv_idle_t *handle) {
 	}
 	uv_mutex_unlock(&worker->queries->mutex);
 
-	if (query.first.len != 0) {
+	if (query.first.base != NULL) {
 		// std::cout << "TEST!" << std::endl;;
 
-		Http request(query.first.base, root);
-		// std::cout << "===============\n";
-		// std::cout << "REQUEST:" << worker->id << "\n" << query.first.base << std::endl;
-		std::string response = request.getResponse();
-		// std::cout << "RESPONSE:\n" << response;
-		// std::cout << "===============\n";
+		char buffer[10000];
 
+		Http request(query.first.base, root);
+		std::cout << "===============\n";
+		std::cout << "REQUEST:" << worker->id << "\n" << query.first.base << std::endl;
+		size_t size = request.getResponse(buffer);
+		std::cout << "RESPONSE:\n" << buffer << "\nlenght: " << size;
+		std::cout << "===============\n";
+
+
+        // uv_write(&client->write_req, tcp, send_bufs, sizeof(send_bufs)/sizeof(uv_buf_t), NULL);
 
 		uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
-		uv_buf_t writeBuf = uv_buf_init(const_cast<char*>(response.c_str()), response.length());
+		// req->handle = query.second;
+		uv_buf_t writeBuf = uv_buf_init(buffer, size);
 		uv_write(req, query.second, &writeBuf, 1, socketWriteCB);
+		
 	}
 }
 

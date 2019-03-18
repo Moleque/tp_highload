@@ -99,47 +99,47 @@ std::string Http::parseTime(const time_t time) {
     return std::string(buf);
 }
 
-std::string Http::parseFile(const std::string filename, const size_t length) {
+bool Http::parseFile(const std::string filename, char *buffer, const size_t length) {
     // std::string fileContent;
     
-    // int file = open(filename.c_str(), O_RDONLY);
-    // if (file < 0) {
-    //     return fileContent;
-    // }
+    int file = open(filename.c_str(), O_RDONLY);
+    if (file < 0) {
+        return false;
+    }
 
-    // char *map = (char*)mmap(0, length, PROT_READ, MAP_SHARED, file, 0);
-    // if (map == MAP_FAILED) {
-    //     close(file);
-    //     return fileContent;
-    // }
+    char *map = (char*)mmap(0, length, PROT_READ, MAP_SHARED, file, 0);
+    if (map == MAP_FAILED) {
+        close(file);
+        return false;
+    }
 
-    // fileContent = map;
+    memcpy(buffer + response.data.size(), map, length);
 
-    // if (munmap(map, length) == -1) {
-    //     close(file);
-    //     return fileContent;
-    // }
-    // close(file);
-    // return fileContent; 
+    if (munmap(map, length) == -1) {
+        close(file);
+        return false;
+    }
+    close(file);
+    return true; 
 
 
-    std::ifstream in(filename, std::ios::binary);
-    char *buffer = new char[length];
-    in.read(buffer, length);
-    response.data += buffer;
-    // std::cout <<
-    in.close();
-    delete buffer;
-    return "";
+    // std::ifstream in(filename, std::ios::binary);
+    // char *buffer = new char[length];
+    // in.read(buffer, length);
+    // response.data += buffer;
+    // // std::cout <<
+    // in.close();
+    // delete buffer;
+    // return "";
 }
 
-std::string Http::getResponse() {
+size_t Http::getResponse(char *buffer) {
     if (response.data.empty()) {
         int status = parseHttp();
         response.status = std::to_string(status);
         response.phrase = statusPhrase.at(status);
 
-        response.data = request.version + " " + response.status + " " + response.phrase + "\r\n";
+        response.data = "HTTP/1.1 " + response.status + " " + response.phrase + "\r\n";
         response.data += "Server: MLQ/0.1.2\r\n";
         response.data += "Connection: close\r\n";
         
@@ -147,17 +147,32 @@ std::string Http::getResponse() {
         response.date = parseTime(now);
         response.data += "Date: " + response.date + "\r\n";
 
-        if (response.status == std::to_string(OK)) {
+        // if (response.status == std::to_string(OK)) {
             response.data += "Content-Length: " + std::to_string(response.length) + "\r\n";
             response.data += "Content-Type: " + response.mimetype + "\r\n";
-        }
-        response.data += "\r\n";
 
+
+            // if (request.method != "HEAD") {
+                response.data += "\r\n";
+                response.size = response.data.size() + response.length;
+
+                // buffer = (char*)malloc(response.size);
+                strcpy(buffer, response.data.c_str());
+                response.data += parseFile(request.filename, buffer, response.length);
+            // } else {
+            // response.data += "Content-Type: " + response.mimetype + "\0";
+        // }
+        //     std::string errMessage = "<html><head><body>Error</body></head></html>\0";
+        //     response.data += "Content-Type: " + std::to_string(errMessage.size()) + "\r\n";
+        //     response.data += "Content-Type: text/html\r\n";
+        //     response.data += "\r\n";
+        //     response.data += errMessage;            
+        // }
         // const int size = response.data.length();
-        response.data += parseFile(request.filename, response.length);
         // if (response.data) {
         //     response.data += res
         // }
     }
-    return response.data;
+    // std::cout << buffer << std::endl;
+    return response.size;
 }

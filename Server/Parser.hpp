@@ -59,20 +59,21 @@ struct Response {
     std::string date;
     std::string mimetype;
     size_t length = 0;
+    size_t size = 0;
 };
 
 // структура запроса к серверу
 class Http {
     public:
         Http(const std::string, const std::string);
-        std::string getResponse();
+        size_t getResponse(char*);
     private:
         Request request;
         Response response;
 
         int parseHttp();
         void parseUri(char*, char*, int);
-        std::string parseFile(const std::string, const size_t);
+        bool parseFile(const std::string, char*, const size_t);
         std::string parseTime(const time_t);
 };
 
