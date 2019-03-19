@@ -46,7 +46,7 @@ struct Response {
     std::string phrase;
     std::string date;
     std::string mimetype;
-    size_t length = 0;
+    size_t fileLength = 0;
     size_t size = 0;
 };
 
@@ -54,7 +54,7 @@ struct Response {
 class Http {
     public:
         Http(const std::string, const std::string);
-        size_t getResponse(char*);
+        size_t getResponse(char*&);
         std::string getFileContent(const std::string, const size_t);
     private:
         Request request;

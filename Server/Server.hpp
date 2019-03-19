@@ -9,32 +9,43 @@
 
 #define CONNECTIONS_COUNT  1024
 
+
+
 struct Query {
-    std::queue<std::pair<uv_buf_t, uv_stream_t*>> queue;
+    char *data = nullptr;
+    size_t lenght = 0;
+    uv_stream_t *client;
+};
+    
+struct Storage {
+    std::queue<Query> queue;
     uv_mutex_t mutex;
 };
 
-struct Worker {
-    unsigned short int id;
-    uv_thread_t thread;
-    uv_loop_t *loop;
-    Query *queries;
-};
+// struct Worker {
+//     unsigned short int id;
+//     uv_thread_t thread;
+//     uv_loop_t *loop;
+//     Query *queries;
+// };
 
 class Server {
     public:
         Server(const std::string, const unsigned short, const std::string, const unsigned short);
         ~Server();
     private:
-        unsigned short threadsCount;
-        uv_tcp_t server;	// сокет
-        uv_loop_t *loop;
-        uv_mutex_t mutex;
+        std::string rootDir;
 
-        Query queries;
-        std::vector<Worker*> workers;
+        unsigned short threadsCount;
+    	std::vector<uv_thread_t*> threads;
+
+
+    //     uv_tcp_t server;	// сокет
+    //     uv_mutex_t mutex;
+
+    //     Query queries;
+    //     std::vector<Worker*> workers;
         
-        // std::string root;
 
         // void threadCB();
 };

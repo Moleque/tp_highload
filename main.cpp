@@ -15,9 +15,5 @@ int main(int argc, char **argv) {
     }
 
     Server *server = new Server(IP, PORT, config.root, config.cpu);
-    std::cout << "Hi" << std::endl;
-
-    int v;
-    std::cin >> v;
     return 0;
 }

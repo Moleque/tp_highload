@@ -5,6 +5,23 @@ Http::Http(const std::string request, const std::string root) {
     this->request.filename = root;
 }
 
+void Http::parseUri(char *src, char *dest, int len) {
+    char *p = src;
+    char code[3] = {0};
+    while (*p != '\0'){// && --len) {
+        if (*p == '%') {
+            memcpy(code, ++p, 2);
+            *dest++ = (char) strtoul(code, NULL, 16);
+            p += 2;
+        } 
+        else {
+            *dest++ = *p++;
+        }
+    }
+    *dest = '\0';
+}
+
+// парсинг HTTP запроса
 int Http::parseHttp() {
     // получение метода, uri и версии протокола
     std::istringstream stream(request.data);
@@ -24,7 +41,6 @@ int Http::parseHttp() {
         // strcpy(cgiargs, "");
 
         if (request.uri.find("%") != std::string::npos) {
-            // printf("request.uri decoding\n");
             char ss[request.uri.length()];
             strcpy(ss, request.uri.c_str());
             char tmp[500];
@@ -49,9 +65,7 @@ int Http::parseHttp() {
     if (request.filename.find("/..") != std::string::npos) {
         return FORBIDDEN;
     }
-    
-    // std::cout << "File: " << request.filename;
-    // проверка существования файла
+        // проверка существования файла
     struct stat fileStat;
     if (stat(request.filename.c_str(), &fileStat) < 0) {
         return NOT_FOUND;
@@ -63,31 +77,12 @@ int Http::parseHttp() {
             response.mimetype = type.mime;
         }
     }
-    
-    
 
-
-    response.length = (size_t)fileStat.st_size;
-
-
+    response.fileLength = (size_t)fileStat.st_size;
     return OK;
 }
 
-void Http::parseUri(char *src, char *dest, int len) {
-    char *p = src;
-    char code[3] = {0};
-    while (*p != '\0'){// && --len) {
-        if (*p == '%') {
-            memcpy(code, ++p, 2);
-            *dest++ = (char) strtoul(code, NULL, 16);
-            p += 2;
-        } else {
-            *dest++ = *p++;
-        }
-    }
-    *dest = '\0';
-}
-
+// получить текущие дату и время в формате HTTP
 std::string Http::parseTime(const time_t time) {
     char buf[80];
     struct tm tm = *gmtime(&time);
@@ -95,6 +90,7 @@ std::string Http::parseTime(const time_t time) {
     return std::string(buf);
 }
 
+// получить данные из файла
 bool Http::parseFile(const std::string filename, char *buffer, const size_t length) {
     int file = open(filename.c_str(), O_RDONLY);
     if (file < 0) {
@@ -143,7 +139,7 @@ std::string Http::getFileContent(const std::string filename, const size_t length
 }
 
 
-size_t Http::getResponse(char *buffer) {
+size_t Http::getResponse(char *&buffer) {
     if (response.data.empty()) {
         int status = parseHttp();
         response.status = std::to_string(status);
@@ -152,39 +148,42 @@ size_t Http::getResponse(char *buffer) {
         response.data = "HTTP/1.1 " + response.status + " " + response.phrase + "\r\n";
         response.data += "Server: MLQ/0.1.2\r\n";
         response.data += "Connection: close\r\n";
-        
-        time_t now = time(NULL);
-        response.date = parseTime(now);
+
+        response.date = parseTime(time(NULL));
         response.data += "Date: " + response.date + "\r\n";
 
         if (response.status == std::to_string(OK)) {
-            response.data += "Content-Length: " + std::to_string(response.length) + "\r\n";
+            response.data += "Content-Length: " + std::to_string(response.fileLength) + "\r\n";
             response.data += "Content-Type: " + response.mimetype + "\r\n";
-            response.data += "\r\n";
-
-            if (request.method == "GET") {
-                response.size = response.data.size() + response.length;
-
-                strcpy(buffer, response.data.c_str());
-                std::cout << response.mimetype << std::endl;
-                if (response.mimetype != "text/html" && response.mimetype != "text/css" && response.mimetype != "application/javascript") {
-                    parseFile(request.filename, buffer, response.length);
-                }
-                else {
-                    response.data += getFileContent(request.filename, response.length);
-                    buffer = (char*)response.data.c_str();
-                }
-            }
-            else {
-                response.size = response.data.size();
-                buffer = (char*)response.data.c_str();
-            }
-        } 
-        else {
-            response.data += "\r\n";
-            response.size = response.data.size();
-            buffer = (char*)response.data.c_str();
         }
+
+        response.data += "\r\n";
+    }
+
+    response.size = response.data.length();
+    response.size += request.method == "GET" ? response.fileLength : 0;
+
+    buffer = (char*)malloc(response.size);
+    memcpy(buffer, (char*)response.data.c_str(), response.data.length());
+
+    if (request.method == "GET") {  // если метод = GET, нужно отправить файл
+        if (response.mimetype.find("text") || response.mimetype.find("javascript")) {   // для текстового содержимого читаем как текст
+            // std::string fileContent = 
+            parseFile(request.filename, buffer, response.fileLength);
+            // memcpy(buffer, (char*)fileContent.c_str(), response.data.length());
+        // } 
+        // else {  // в остальных случаях читаем файл в бинарном виде
+    //                 response.data += getFileContent(request.filename, response.length);
+    //                 buffer = (char*)response.data.c_str();
+    //             }
+    //         }
+    //         else {
+    //             response.size = response.data.size();
+    //             buffer = (char*)response.data.c_str();
+        }
+    } 
+    else {
+        
     }
     return response.size;
 }
