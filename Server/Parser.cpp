@@ -152,10 +152,10 @@ size_t Http::getResponse(char *&buffer) {
         response.date = parseTime(time(NULL));
         response.data += "Date: " + response.date + "\r\n";
 
-        if (response.status == std::to_string(OK)) {
+        // if (response.status == std::to_string(OK)) {
             response.data += "Content-Length: " + std::to_string(response.fileLength) + "\r\n";
             response.data += "Content-Type: " + response.mimetype + "\r\n";
-        }
+        // }
 
         response.data += "\r\n";
     }
@@ -167,11 +167,7 @@ size_t Http::getResponse(char *&buffer) {
     memcpy(buffer, (char*)response.data.c_str(), response.data.length());
 
     if (request.method == "GET") {  // если метод = GET, нужно отправить файл
-        if (response.mimetype.find("text") || response.mimetype.find("javascript")) {   // для текстового содержимого читаем как текст
-            // std::string fileContent = 
-            parseFile(request.filename, buffer, response.fileLength);
-            // memcpy(buffer, (char*)fileContent.c_str(), response.data.length());
-        // } 
+        parseFile(request.filename, buffer, response.fileLength);
         // else {  // в остальных случаях читаем файл в бинарном виде
     //                 response.data += getFileContent(request.filename, response.length);
     //                 buffer = (char*)response.data.c_str();
@@ -180,7 +176,7 @@ size_t Http::getResponse(char *&buffer) {
     //         else {
     //             response.size = response.data.size();
     //             buffer = (char*)response.data.c_str();
-        }
+        // }
     } 
     else {
         

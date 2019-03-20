@@ -2,10 +2,6 @@
 
 std::string root;
 
-
-
-
-
 // колбек на запись
 void socketWriteCB(uv_write_t *req, int status) {
     if (status) {
