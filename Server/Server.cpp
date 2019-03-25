@@ -7,6 +7,9 @@ void socketWriteCB(uv_write_t *req, int status) {
     if (status) {
         std::cerr << "Write error " << uv_strerror(status) << std::endl;
     }
+	if (!uv_is_closing((uv_handle_t*)req->handle)) {
+		uv_close((uv_handle_t*)req->handle, NULL);
+	}
     free(req);
 }
 

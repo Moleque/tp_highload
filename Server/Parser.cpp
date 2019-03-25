@@ -65,7 +65,8 @@ int Http::parseHttp() {
     if (request.filename.find("/..") != std::string::npos) {
         return FORBIDDEN;
     }
-        // проверка существования файла
+    
+    // проверка существования файла
     struct stat fileStat;
     if (stat(request.filename.c_str(), &fileStat) < 0) {
         return NOT_FOUND;
@@ -152,11 +153,15 @@ size_t Http::getResponse(char *&buffer) {
         response.date = parseTime(time(NULL));
         response.data += "Date: " + response.date + "\r\n";
 
-        // if (response.status == std::to_string(OK)) {
-            response.data += "Content-Length: " + std::to_string(response.fileLength) + "\r\n";
-            response.data += "Content-Type: " + response.mimetype + "\r\n";
-        // }
+        if (response.status == std::to_string(NOT_FOUND)) {
+            std::string notFoundMessage = "Not found error";
+            response.fileLength = notFoundMessage.length();
+            response.mimetype = "text/html";
+        }
 
+        response.data += "Content-Length: " + std::to_string(response.fileLength) + "\r\n";
+        response.data += "Content-Type: " + response.mimetype + "\r\n";
+        
         response.data += "\r\n";
     }
 

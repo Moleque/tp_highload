@@ -29,6 +29,7 @@ const std::vector<types> mimeTypes = {
     { ".png", "image/png" },
     { ".gif", "image/gif" },
     { ".swf", "application/x-shockwave-flash" },
+    { ".txt", "text/plain" },
 };
 
 

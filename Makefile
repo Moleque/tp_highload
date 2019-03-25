@@ -1,7 +1,7 @@
 all: server
 
 CXX = g++
-GDB = -g
+# GDB = -g
 LIBS = -luv -lstdc++ #-lpthread
 NAME = server
 

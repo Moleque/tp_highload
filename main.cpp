@@ -14,6 +14,8 @@ int main(int argc, char **argv) {
         std::cerr << "config file not found\nset default setting" << std::endl;
     }
 
-    Server *server = new Server(IP, PORT, config.root, config.cpu);
+    // try {
+        Server *server = new Server(IP, PORT, config.root, config.cpu);
+    // } catch (...) {}
     return 0;
 }
