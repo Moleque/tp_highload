@@ -91,8 +91,8 @@ std::string Http::parseTime(const time_t time) {
     return std::string(buf);
 }
 
-// получить данные из файла
-bool Http::parseFile(const std::string filename, char *buffer, const size_t length) {
+// отправить данные из файла
+bool Http::sendFile(int fd, const std::string filename, const size_t length) {
     int file = open(filename.c_str(), O_RDONLY);
     if (file < 0) {
         return false;
@@ -103,44 +103,21 @@ bool Http::parseFile(const std::string filename, char *buffer, const size_t leng
         close(file);
         return false;
     }
-
-    memcpy(buffer + response.data.size(), map, length);
-
+    if (send(fd, map, length, 0) < 0) {
+        close(file);
+        return false;
+    }
     if (munmap(map, length) == -1) {
         close(file);
         return false;
     }
+
     close(file);
     return true;
 }
 
-std::string Http::getFileContent(const std::string filename, const size_t length) {
-    std::string fileContent;
-    int file = open(filename.c_str(), O_RDONLY);
-    if (file < 0) {
-        return fileContent;
-    }
 
-    char *map = (char*)mmap(0, length, PROT_READ, MAP_SHARED, file, 0);
-    if (map == MAP_FAILED) {
-        close(file);
-        return fileContent;
-    }
-
-    char buffer[length];
-    memcpy(buffer, map, length);
-    fileContent += buffer;
-
-    if (munmap(map, length) == -1) {
-        close(file);
-        return fileContent;
-    }
-    close(file);
-    return fileContent;
-}
-
-
-size_t Http::getResponse(char *&buffer) {
+bool Http::sendResponse(int socket) {
     if (response.data.empty()) {
         int status = parseHttp();
         response.status = std::to_string(status);
@@ -153,38 +130,25 @@ size_t Http::getResponse(char *&buffer) {
         response.date = parseTime(time(NULL));
         response.data += "Date: " + response.date + "\r\n";
 
-        if (response.status == std::to_string(NOT_FOUND)) {
-            std::string notFoundMessage = "Not found error";
-            response.fileLength = notFoundMessage.length();
-            response.mimetype = "text/html";
+        if (response.status != std::to_string(NOT_FOUND)) {
+            response.data += "Content-Length: " + std::to_string(response.fileLength) + "\r\n";
+            response.data += "Content-Type: " + response.mimetype + "\r\n";
         }
-
-        response.data += "Content-Length: " + std::to_string(response.fileLength) + "\r\n";
-        response.data += "Content-Type: " + response.mimetype + "\r\n";
         
         response.data += "\r\n";
+    }
+
+    if (send(socket, response.data.c_str(), response.data.length(), 0) < 0) {
+        return false;
     }
 
     response.size = response.data.length();
     response.size += request.method == "GET" ? response.fileLength : 0;
 
-    buffer = (char*)malloc(response.size);
-    memcpy(buffer, (char*)response.data.c_str(), response.data.length());
-
-    if (request.method == "GET") {  // если метод = GET, нужно отправить файл
-        parseFile(request.filename, buffer, response.fileLength);
-        // else {  // в остальных случаях читаем файл в бинарном виде
-    //                 response.data += getFileContent(request.filename, response.length);
-    //                 buffer = (char*)response.data.c_str();
-    //             }
-    //         }
-    //         else {
-    //             response.size = response.data.size();
-    //             buffer = (char*)response.data.c_str();
-        // }
-    } 
-    else {
-        
+    if (request.method == "GET" && response.status == std::to_string(OK)) {  // если метод = GET, нужно отправить файл
+        if (!sendFile(socket, request.filename, response.fileLength)) {
+            return false;
+        }
     }
-    return response.size;
+    return true;
 }

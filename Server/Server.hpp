@@ -18,8 +18,8 @@ struct Query {
 };
     
 struct Storage {
-    std::queue<Query> queue;
-    uv_mutex_t mutex;
+    std::vector<std::queue<Query>> queue;
+    // uv_mutex_t mutex;
 };
 
 // struct Worker {
@@ -38,6 +38,8 @@ class Server {
 
         unsigned short threadsCount;
     	std::vector<uv_thread_t*> threads;
+
+        std::vector<uv_work_t*> workers;
 
 
     //     uv_tcp_t server;	// сокет

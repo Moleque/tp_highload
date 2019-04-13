@@ -1,65 +1,26 @@
 #include "Server.hpp"
 
 std::string root;
+int counter = 0;
+int thCnt;
+
+
+// void onCloseCB(uv_handle_t *client) {
+//     printf("Closed, bye!\n");
+//     free(client);
+// }
 
 // колбек на запись
 void socketWriteCB(uv_write_t *req, int status) {
     if (status) {
         std::cerr << "Write error " << uv_strerror(status) << std::endl;
+		if (!uv_is_closing((uv_handle_t*)req->handle)) {
+			uv_close((uv_handle_t*)req->handle, NULL);//onCloseCB);
+		}
     }
-	if (!uv_is_closing((uv_handle_t*)req->handle)) {
-		uv_close((uv_handle_t*)req->handle, NULL);
-	}
+	free(req->bufs);
     free(req);
 }
-
-void idlerCB(uv_idle_t *handle) {
-	Storage *storage = (Storage*)handle->data;
-
-	Query query;
-	uv_mutex_lock(&storage->mutex);
-	if (!(storage->queue.empty())) {		
-		query = storage->queue.front();
-		storage->queue.pop();
-	}
-	uv_mutex_unlock(&storage->mutex);
-
-	if (query.data != nullptr) {
-		// char buffer[1000000];
-
-		Http request(query.data, root);
-		char *buffer;
-		size_t size = request.getResponse(buffer);
-
-		std::cout << "===============\nREQUEST:\n" << query.data << "RESPONSE:\n" << buffer << "===============\n" << std::endl;
-
-		uv_write_t *req = (uv_write_t*)malloc(sizeof(uv_write_t));
-		uv_buf_t writeBuf = uv_buf_init(buffer, size);
-		uv_write(req, query.client, &writeBuf, 1, socketWriteCB);
-
-		free(buffer);
-		free(query.data);
-	}
-}
-
-void threadWork(void *arg) {	// работа треда
-	Storage *storage = (Storage*)arg;
-	uv_loop_t *loop = (uv_loop_t*)malloc(sizeof(uv_loop_t));	// создаем свой луп на каждый тред
-	uv_loop_init(loop);
-	
-	uv_idle_t idler;
-	idler.data = storage;
-	uv_idle_init(loop, &idler);
-	uv_idle_start(&idler, idlerCB);
-	
-	uv_run(loop, UV_RUN_DEFAULT);
-	uv_loop_close(loop);
-	free(loop);
-}
-
-
-
-
 
 // колбек на аллокацию
 void allocBufferCB(uv_handle_t *handle, size_t size, uv_buf_t *buf) {
@@ -75,7 +36,7 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 		}
 		uv_close((uv_handle_t*)client, NULL);
 	} else if (nread > 0) {
-		Storage *storage = (Storage*)client->data;
+		std::vector<std::queue<Query>*> *queues = (std::vector<std::queue<Query>*>*)client->data;
 		
 		Query query;
 		query.data = (char*)malloc(nread);
@@ -83,9 +44,9 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 		query.lenght = nread;
 		query.client = client;
 		
-		uv_mutex_lock(&storage->mutex);
-		storage->queue.push(query);
-		uv_mutex_unlock(&storage->mutex);
+		(*queues)[counter]->push(query);
+		// std::cout << "!!!" << counter << std::endl;
+		counter = (counter+1)%thCnt;
 	}
 
 	if (buf->base) {
@@ -100,8 +61,6 @@ void newConnectionCB(uv_stream_t *server, int status) {
 		return;
 	}
 
-	std::cout << "new connection" << std::endl;
-
 	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));	// создание сокета клиента
 	client->data = server->data;
 
@@ -113,8 +72,42 @@ void newConnectionCB(uv_stream_t *server, int status) {
 	}
 }
 
+void work(uv_work_t *req) {
+	std::queue<Query> *queue = (std::queue<Query>*)req->data;
+
+	while (true) {
+		Query query;
+		if (!(queue->empty())) {		
+			query = queue->front();
+			queue->pop();
+		}
+
+		if (query.data != nullptr) {
+			Http request(query.data, root);
+			
+			// std::cout << "===============\nREQUEST:\n" << query.data << std::endl;
+			request.sendResponse(query.client->io_watcher.fd);
+			
+			close(query.client->io_watcher.fd);
+			free(query.data);
+		}
+	}
+}
+
+void after_work(uv_work_t *req, int status) {
+    int i = *(int *) req->data;
+    if (status == UV_ECANCELED) {
+        printf("Cancelled\n");
+    } else if (!status){
+        printf("Done calculating %dth work\n", i);
+    }
+    free(req->data);
+    free(req);
+}
+
 Server::Server(const std::string ip, const unsigned short port, const std::string rootDir, const unsigned short threadsCount) {
 	this->threadsCount = threadsCount;
+	thCnt = threadsCount;
 	this->rootDir = rootDir;
 	root = rootDir;
 
@@ -123,22 +116,24 @@ Server::Server(const std::string ip, const unsigned short port, const std::strin
 	struct sockaddr_in address;
 	uv_ip4_addr(ip.c_str(), port, &address);
 
-	Storage storage;	// хранилище для синхронизации потоков
-	uv_mutex_init(&storage.mutex);
+	std::vector<std::queue<Query>*> queues;
+
+	for (int i = 0; i < threadsCount; i++) {
+		std::queue<Query> *queue = new std::queue<Query>;
+		queues.push_back(queue);
+
+        uv_work_t *worker = (uv_work_t*)malloc(sizeof(uv_work_t));
+        worker->data = (void*)queue;
+		workers.push_back(worker);
+        uv_queue_work(loop, workers[i], work, after_work);
+    }
 
 	uv_tcp_t server;
-	server.data = &storage;
+	server.data = &queues;
 
 	uv_tcp_init(loop, &server);
 	uv_tcp_bind(&server, (struct sockaddr*)&address, 0);
 	uv_listen((uv_stream_t*)&server, CONNECTIONS_COUNT, newConnectionCB);
-	
-	for (int i = 0; i < threadsCount; i++) {	// создание воркеров в тредах
-		uv_thread_t *thread = (uv_thread_t*)malloc(sizeof(uv_thread_t));
-		threads.push_back(thread);
-		uv_thread_create(thread, threadWork, &storage);
-		std::cout << "thread " << thread << " was started" << std::endl;
-	}
 	uv_run(loop, UV_RUN_DEFAULT);
 }
 

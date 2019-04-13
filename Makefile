@@ -1,12 +1,13 @@
 all: server
 
 CXX = g++
-# GDB = -g
+GDB = -g
 LIBS = -luv -lstdc++ #-lpthread
 NAME = server
 
 server: clean main.cpp Server.o Parser.o Config.o
 	$(CXX) -o $(NAME) main.cpp Server.o Parser.o Config.o $(LIBS) $(GDB)
+	# kill $(lsof -t -i:80)
 
 Server.o: ./Server/Server.cpp
 	$(CXX) -c ./Server/Server.cpp $(LIBS) $(GDB)

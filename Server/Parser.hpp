@@ -7,11 +7,13 @@
 #include <vector>
 
 #include <string.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <cstdlib>
 #include <unistd.h>
+
 
 #include "Status.hpp"
 
@@ -55,15 +57,14 @@ struct Response {
 class Http {
     public:
         Http(const std::string, const std::string);
-        size_t getResponse(char*&);
-        std::string getFileContent(const std::string, const size_t);
+        bool sendResponse(int);
     private:
         Request request;
         Response response;
 
         int parseHttp();
         void parseUri(char*, char*, int);
-        bool parseFile(const std::string, char*, const size_t);
+        bool sendFile(int, const std::string, const size_t);
         std::string parseTime(const time_t);
 };
 
