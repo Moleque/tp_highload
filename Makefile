@@ -26,4 +26,6 @@ test:
 	docker run -p 80:80 -v /etc/httpd.conf:/etc/httpd.conf:ro -v /var/www/html:/var/www/html:ro --name salman-server -t salman
 
 clean:
+	# docker image prune
+	# docker system prune
 	-rm *.o $(NAME)

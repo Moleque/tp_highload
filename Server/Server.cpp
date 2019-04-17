@@ -85,10 +85,10 @@ void work(uv_work_t *req) {
 		if (query.data != nullptr) {
 			Http request(query.data, root);
 			
-			std::cout << "===============\nREQUEST:\n" << query.data << std::endl;
+			// std::cout << "===============\nREQUEST:\n" << query.data << std::endl;
 			request.sendResponse(query.client->io_watcher.fd);
 			
-			// close(query.client->io_watcher.fd);
+			close(query.client->io_watcher.fd);
 			free(query.data);
 		}
 	}
