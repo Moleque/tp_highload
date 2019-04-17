@@ -36,13 +36,13 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 		}
 		uv_close((uv_handle_t*)client, NULL);
 	} else if (nread > 0) {
-		std::vector<std::queue<Query>*> *queues = (std::vector<std::queue<Query>*>*)client->data;
+		std::vector<std::queue<Query*>*> *queues = (std::vector<std::queue<Query*>*>*)client->data;
 		
-		Query query;
-		query.data = (char*)malloc(nread);
-		memcpy(query.data, buf->base, nread);
-		query.lenght = nread;
-		query.client = client;
+		Query *query = new Query;
+		query->data = (char*)malloc(nread);
+		memcpy(query->data, buf->base, nread);
+		query->lenght = nread;
+		query->client = client;
 		
 		(*queues)[counter]->push(query);
 		// std::cout << "!!!" << counter << std::endl;
@@ -73,23 +73,24 @@ void newConnectionCB(uv_stream_t *server, int status) {
 }
 
 void work(uv_work_t *req) {
-	std::queue<Query> *queue = (std::queue<Query>*)req->data;
+	std::queue<Query*> *queue = (std::queue<Query*>*)req->data;
 
 	while (true) {
-		Query query;
+		Query *query;
 		if (!(queue->empty())) {		
 			query = queue->front();
 			queue->pop();
-		}
+		// }
 
-		if (query.data != nullptr) {
-			Http request(query.data, root);
+		// if (query->data != nullptr) {
+			Http request(query->data, root);
 			
 			// std::cout << "===============\nREQUEST:\n" << query.data << std::endl;
-			request.sendResponse(query.client->io_watcher.fd);
+			request.sendResponse(query->client->io_watcher.fd);
 			
-			close(query.client->io_watcher.fd);
-			free(query.data);
+			close(query->client->io_watcher.fd);
+			free(query->data);
+			delete query;
 		}
 	}
 }
@@ -116,10 +117,10 @@ Server::Server(const std::string ip, const unsigned short port, const std::strin
 	struct sockaddr_in address;
 	uv_ip4_addr(ip.c_str(), port, &address);
 
-	std::vector<std::queue<Query>*> queues;
+	std::vector<std::queue<Query*>*> queues;
 
 	for (int i = 0; i < threadsCount; i++) {
-		std::queue<Query> *queue = new std::queue<Query>;
+		std::queue<Query*> *queue = new std::queue<Query*>;
 		queues.push_back(queue);
 
         uv_work_t *worker = (uv_work_t*)malloc(sizeof(uv_work_t));
