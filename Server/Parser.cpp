@@ -91,6 +91,18 @@ std::string Http::parseTime(const time_t time) {
     return std::string(buf);
 }
 
+
+void handle_read(union sigval sigev_value) {
+    struct aiocb *my_aio = (struct aiocb*)(sigev_value.sival_ptr);
+    std::cout << "handle" << std::endl;
+
+    munmap((void*)my_aio->aio_buf, my_aio->aio_nbytes);
+    // close(my_aio->aio_sigevent.sigev_value.sival_int);
+    close(my_aio->aio_fildes);
+    delete my_aio;
+}
+
+
 // отправить данные из файла
 bool Http::sendFile(int fd, const std::string filename, const size_t length) {
     int file = open(filename.c_str(), O_RDONLY);
@@ -98,24 +110,68 @@ bool Http::sendFile(int fd, const std::string filename, const size_t length) {
         return false;
     }
 
-    char *map = (char*)mmap(0, length, PROT_READ, MAP_SHARED, file, 0);
+    void *map = (void*)mmap(0, length, PROT_READ, MAP_SHARED, file, 0);
     if (map == MAP_FAILED) {
         close(file);
         return false;
     }
-    if (send(fd, map, length, 0) < 0) {
-        close(file);
-        return false;
-    }
-    if (munmap(map, length) == -1) {
-        close(file);
-        return false;
-    }
 
-    close(file);
+
+
+    // if (sendfile(fd, map, 0, length) < 0) {
+    //     // send(test->fd, map, test->length, 0);
+    //     close(file);
+    //     return false;
+    // }
+
+    struct aiocb *my_aio = new struct aiocb;
+
+    memset(my_aio, 0, sizeof(struct aiocb));
+    my_aio->aio_fildes = fd;
+    my_aio->aio_buf = map;
+    my_aio->aio_nbytes = length;
+    my_aio->aio_offset = O_APPEND;
+    my_aio->aio_sigevent.sigev_notify = SIGEV_THREAD;
+    my_aio->aio_sigevent.sigev_value.sival_int = file;
+    my_aio->aio_sigevent.sigev_value.sival_ptr = (void*)my_aio;
+    my_aio->aio_sigevent.sigev_notify_function = handle_read;
+  
+    if (aio_write(my_aio) == -1 ) {
+        printf("ERROR!!! %d\n", errno);
+        close(file);
+        return false;
+    }
+    
+    
+    
+    // if (munmap(map, length) == -1) {
+        close(file);
+    //     return false;
+    // }
+
+    // close(file);
     return true;
 }
 
+// struct Test {
+//             int fd; 
+//             std::string filename;
+//             size_t length;
+//         };
+
+// void asyncmsg(uv_async_t* handle) {
+//     Test *test = (Test*)handle->data;
+
+//     int file = open(test->filename.c_str(), O_RDONLY);
+
+//     char *map = (char*)mmap(0, test->length, PROT_READ, MAP_SHARED, file, 0);
+//     send(test->fd, map, test->length, 0);
+//     munmap(map, test->length);
+
+//     close(file);
+// 	close(test->fd);
+//     delete test;
+// }
 
 bool Http::sendResponse(int socket) {
     if (response.data.empty()) {
@@ -146,9 +202,26 @@ bool Http::sendResponse(int socket) {
     response.size += request.method == "GET" ? response.fileLength : 0;
 
     if (request.method == "GET" && response.status == std::to_string(OK)) {  // если метод = GET, нужно отправить файл
+        // uv_async_t async;
+
+        // Test *test = new Test;
+        // test->fd = socket;
+        // test->filename = request.filename;
+        // test->length = response.fileLength;
+
+        // async.data = (void*)test;
+        // uv_loop_t* loop = uv_default_loop();
+        // uv_async_init(loop, &async, asyncmsg);
+
         if (!sendFile(socket, request.filename, response.fileLength)) {
             return false;
         }
+        // send(socket, "", 0, 0);
+        // uv_async_send(&async);
     }
+    else {
+        close(socket);
+    }
+    
     return true;
 }

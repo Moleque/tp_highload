@@ -2,7 +2,7 @@ all: server
 
 CXX = g++
 GDB = -g
-LIBS = -luv -lstdc++ #-lpthread
+LIBS = -lrt -luv -lstdc++ #-lpthread
 NAME = server
 
 server: clean main.cpp Server.o Parser.o Config.o

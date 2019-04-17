@@ -8,11 +8,16 @@
 
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/sendfile.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <cstdlib>
 #include <unistd.h>
+#include <signal.h>
+
+#include <uv.h>
+#include <aio.h>
 
 
 #include "Status.hpp"
