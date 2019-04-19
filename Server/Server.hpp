@@ -17,9 +17,9 @@ struct Query {
     uv_stream_t *client;
 };
     
-struct Storage {
-    std::vector<std::queue<Query>> queue;
-    // uv_mutex_t mutex;
+struct ThreadStorage {
+    std::queue<Query*> queries;
+    uv_mutex_t mutex;
 };
 
 // struct Worker {
@@ -37,9 +37,8 @@ class Server {
         std::string rootDir;
 
         unsigned short threadsCount;
-    	std::vector<uv_thread_t*> threads;
-
         std::vector<uv_work_t*> workers;
+        std::vector<ThreadStorage*> storages;
 
 
     //     uv_tcp_t server;	// сокет

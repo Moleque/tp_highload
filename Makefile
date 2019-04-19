@@ -23,7 +23,7 @@ test:
 	docker stop $$(docker ps -a -q)
 	docker build -t salman .
 	docker rm salman-server
-	docker run --network host -p 80:80 -v /etc/httpd.conf:/etc/httpd.conf:ro -v /var/www/html:/var/www/html:ro --name salman-server -t salman
+	docker run -p 80:80 -v /etc/httpd.conf:/etc/httpd.conf:ro -v /var/www/html:/var/www/html:ro --name salman-server -t salman
 
 clean:
 	# docker image prune
