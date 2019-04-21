@@ -114,6 +114,7 @@ bool Http::sendFile(int fd, const std::string filename, const size_t length) {
     // }
 
     close(file);
+    // close(fd);
     return true;
 }
 

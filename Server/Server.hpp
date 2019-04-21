@@ -19,7 +19,8 @@ struct Query {
     
 struct ThreadStorage {
     std::queue<Query*> queries;
-    uv_mutex_t mutex;
+    uv_mutex_t *mutex;
+    // uv_async_t *async;
 };
 
 // struct Worker {
@@ -38,7 +39,7 @@ class Server {
 
         unsigned short threadsCount;
         std::vector<uv_work_t*> workers;
-        std::vector<ThreadStorage*> storages;
+        // ThreadStorage *storage;
 
 
     //     uv_tcp_t server;	// сокет
