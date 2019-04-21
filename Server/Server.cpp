@@ -6,25 +6,6 @@ int thCnt;
 
 ThreadStorage *storage;
 
-
-
-// void onCloseCB(uv_handle_t *client) {
-//     printf("Closed, bye!\n");
-//     free(client);
-// }
-
-// колбек на запись
-void socketWriteCB(uv_write_t *req, int status) {
-    if (status) {
-        std::cerr << "Write error " << uv_strerror(status) << std::endl;
-		// if (!uv_is_closing((uv_handle_t*)req->handle)) {
-		// 	uv_close((uv_handle_t*)req->handle, NULL);//onCloseCB);
-		// }
-    }
-	free(req->bufs);
-    free(req);
-}
-
 // колбек на аллокацию
 void allocBufferCB(uv_handle_t *handle, size_t size, uv_buf_t *buf) {
 	buf->base = (char*)malloc(size);
@@ -117,12 +98,6 @@ void after_work(uv_work_t *req, int status) {
     free(req->data);
     free(req);
 }
-
-// void add(std::queue<Query*> *queries, Query *query, uv_mutex_t *mutex) {
-// 	uv_mutex_lock(mutex);
-// 	queries->push(query);
-// 	uv_mutex_unlock(mutex);
-// }
 
 Server::Server(const std::string ip, const unsigned short port, const std::string rootDir, const unsigned short threadsCount) {
 	this->threadsCount = threadsCount;
