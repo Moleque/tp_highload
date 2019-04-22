@@ -1,10 +1,6 @@
 #include "Server.hpp"
 
 std::string root;
-int counter = 0;
-int thCnt;
-
-ThreadStorage *storage;
 
 // колбек на аллокацию
 void allocBufferCB(uv_handle_t *handle, size_t size, uv_buf_t *buf) {
@@ -53,7 +49,6 @@ void newConnectionCB(uv_stream_t *server, int status) {
 
 Server::Server(const std::string ip, const unsigned short port, const std::string rootDir, const unsigned short threadsCount) {
 	this->threadsCount = threadsCount;
-	thCnt = threadsCount;
 	this->rootDir = rootDir;
 	root = rootDir;
 
@@ -68,13 +63,4 @@ Server::Server(const std::string ip, const unsigned short port, const std::strin
 	uv_tcp_bind(&server, (struct sockaddr*)&address, 0);
 	uv_listen((uv_stream_t*)&server, CONNECTIONS_COUNT, newConnectionCB);
 	uv_run(loop, UV_RUN_DEFAULT);
-}
-
-Server::~Server() {
-	for (auto worker : workers) {
-		free(worker);
-	}
-	uv_mutex_destroy(storage->mutex);
-	free(storage->mutex);
-	delete storage;
 }
