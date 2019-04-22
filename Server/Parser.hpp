@@ -22,6 +22,8 @@
 
 #include "Status.hpp"
 
+#define BUF_SIZE 32
+
 struct types {
     const std::string format;
     const std::string mime;
