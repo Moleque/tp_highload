@@ -20,8 +20,6 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 		}
 		uv_close((uv_handle_t*)client, NULL);
 	} else if (nread > 0) {
-		// ThreadStorage *storage = (ThreadStorage*)client->data;
-		
 		Query *query = new Query;
 		query->data = (char*)malloc(nread);
 		memcpy(query->data, buf->base, nread);
@@ -29,13 +27,8 @@ void readCB(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
 		query->client = client;
 		
 		uv_mutex_lock(storage->mutex);
-		// // sleep(3);
-		// storage->
 		storage->queries.push(query);
-		// uv_async_send(storage->async);
 		uv_mutex_unlock(storage->mutex);
-
-		// counter = (counter+1)%thCnt;
 	}
 
 	if (buf->base) {
@@ -49,7 +42,6 @@ void newConnectionCB(uv_stream_t *server, int status) {
 		std::cerr << "new connection error " << uv_strerror(status) << std::endl;
 		return;
 	}
-	// std::cout << "new connection" << std::endl;
 
 	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));	// создание сокета клиента
 	client->data = server->data;
@@ -63,8 +55,6 @@ void newConnectionCB(uv_stream_t *server, int status) {
 }
 
 void work(uv_work_t *req) {
-	// ThreadStorage *storage = (ThreadStorage*)req->data;
-
 	while (true) {
 		Query *query = nullptr;
 		uv_mutex_lock(storage->mutex);
@@ -77,8 +67,6 @@ void work(uv_work_t *req) {
 
 		if (query != nullptr) {
 			Http request(query->data, root);
-			
-			// std::cout << "===============\nREQUEST:\n" << req << "\n" << query->data << std::endl;
 			request.sendResponse(query->client->io_watcher.fd);
 			
 			close(query->client->io_watcher.fd);
