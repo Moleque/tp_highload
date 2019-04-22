@@ -8,7 +8,7 @@ Http::Http(const std::string request, const std::string root) {
 void Http::parseUri(char *src, char *dest, int len) {
     char *p = src;
     char code[3] = {0};
-    while (*p != '\0') {// && --len) {
+    while (*p != '\0') {
         if (*p == '%') {
             memcpy(code, ++p, 2);
             *dest++ = (char) strtoul(code, NULL, 16);
@@ -37,30 +37,26 @@ int Http::parseHttp() {
 
 
     // парсер request.uri
-    // if (!request.uri.find("cgi-bin") != std::string::npos) {
-        // strcpy(cgiargs, "");
+    if (request.uri.find("%") != std::string::npos) {
+        char ss[request.uri.length()];
+        strcpy(ss, request.uri.c_str());
+        char tmp[500];
+        parseUri(ss, tmp, request.uri.length());
+        request.uri = tmp;
+    }
 
-        if (request.uri.find("%") != std::string::npos) {
-            char ss[request.uri.length()];
-            strcpy(ss, request.uri.c_str());
-            char tmp[500];
-            parseUri(ss, tmp, request.uri.length());
-            request.uri = tmp;
-        }
+    request.uri = request.uri.substr(0, request.uri.find('?')); // получить uri без параметров
 
-        request.uri = request.uri.substr(0, request.uri.find('?')); // получить uri без параметров
-
-        request.filename += request.uri;
-        if (request.uri[request.uri.length()-1] == '/') {
-            if (request.uri.find(".") == std::string::npos) {
-                request.filename += "index.html";
-                struct stat isExist;
-                if (stat(request.filename.c_str(), &isExist) < 0) {
-                    return FORBIDDEN;
-                }
+    request.filename += request.uri;
+    if (request.uri[request.uri.length()-1] == '/') {
+        if (request.uri.find(".") == std::string::npos) {
+            request.filename += "index.html";
+            struct stat isExist;
+            if (stat(request.filename.c_str(), &isExist) < 0) {
+                return FORBIDDEN;
             }
         }
-    // }
+    }
 
     if (request.filename.find("/..") != std::string::npos) {
         return FORBIDDEN;
@@ -98,25 +94,12 @@ bool Http::sendFile(int fd, const std::string filename, const size_t length) {
         return false;
     }
 
-    // if (sendfile(fd, file, 0, length) < 0) {
-    // // if (send(fd, map, length, 0) < 0) {
-    //     close(file);
-    //     return false;
-    // }
-
     int sentBytes = 0, remainData = 0;
     off_t offset = 0;
-    while ((sentBytes = sendfile(fd, file, &offset, 256)) > 0) {
+    while ((sentBytes = sendfile(fd, file, &offset, BUF_SIZE)) > 0) {
         remainData -= sentBytes;
     }
-
-    // if (munmap(map, length) == -1) {
-    //     close(file);
-    //     return false;
-    // }
-
     close(file);
-    // close(fd);
     return true;
 }
 
@@ -141,13 +124,12 @@ bool Http::sendResponse(int socket) {
         response.data += "\r\n";
     }
 
-    if (send(socket, response.data.c_str(), response.data.length(), 0) < 0) {
-        return false;
-    }
-
     response.size = response.data.length();
     response.size += request.method == "GET" ? response.fileLength : 0;
 
+    if (send(socket, response.data.c_str(), response.data.length(), 0) < 0) {
+        return false;
+    }
     if (request.method == "GET" && response.status == std::to_string(OK)) {  // если метод = GET, нужно отправить файл
         if (!sendFile(socket, request.filename, response.fileLength)) {
             return false;

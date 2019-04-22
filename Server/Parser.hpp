@@ -16,11 +16,9 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include <uv.h>
-#include <aio.h>
-
-
 #include "Status.hpp"
+
+#define BUF_SIZE 32
 
 struct types {
     const std::string format;
@@ -38,7 +36,6 @@ const std::vector<types> mimeTypes = {
     { ".swf", "application/x-shockwave-flash" },
     { ".txt", "text/plain" },
 };
-
 
 struct Request {
     std::string data;
