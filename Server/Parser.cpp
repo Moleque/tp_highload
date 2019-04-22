@@ -98,16 +98,18 @@ bool Http::sendFile(int fd, const std::string filename, const size_t length) {
         return false;
     }
 
-    // void *map = (void*)mmap(0, length, PROT_READ, MAP_SHARED, file, 0);
-    // if (map == MAP_FAILED) {
+    // if (sendfile(fd, file, 0, length) < 0) {
+    // // if (send(fd, map, length, 0) < 0) {
     //     close(file);
     //     return false;
     // }
-    if (sendfile(fd, file, 0, length) < 0) {
-    // if (send(fd, map, length, 0) < 0) {
-        close(file);
-        return false;
+
+    int sentBytes = 0, remainData = 0;
+    off_t offset = 0;
+    while ((sentBytes = sendfile(fd, file, &offset, 256)) > 0) {
+        remainData -= sentBytes;
     }
+
     // if (munmap(map, length) == -1) {
     //     close(file);
     //     return false;
