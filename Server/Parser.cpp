@@ -94,10 +94,13 @@ bool Http::sendFile(int fd, const std::string filename, const size_t length) {
         return false;
     }
 
-    int sentBytes = 0, remainData = 0;
+    int sentBytes = 0, remainData = length;
     off_t offset = 0;
     while ((sentBytes = sendfile(fd, file, &offset, BUF_SIZE)) > 0) {
         remainData -= sentBytes;
+    }
+    if (remainData != 0) {
+        return false;
     }
     close(file);
     return true;
