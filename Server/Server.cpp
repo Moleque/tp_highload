@@ -64,8 +64,6 @@ void test(void *arg) {
 }
 
 Server::Server(const std::string ip, const unsigned short port, const std::string rootDir, const unsigned short threadsCount) {
-	this->threadsCount = threadsCount;
-	this->rootDir = rootDir;
 	root = rootDir;
 	
 	struct sockaddr_in address;

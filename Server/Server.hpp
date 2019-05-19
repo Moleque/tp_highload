@@ -14,9 +14,6 @@ class Server {
         Server(const std::string, const unsigned short, const std::string, const unsigned short);
         ~Server();
     private:
-        std::string rootDir;
-
-        unsigned short threadsCount;
         std::vector<uv_thread_t*> workers;
 };
 
