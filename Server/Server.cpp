@@ -47,20 +47,38 @@ void newConnectionCB(uv_stream_t *server, int status) {
 	}
 }
 
+void test(void *arg) {
+	uv_loop_t *loop = (uv_loop_t*)malloc(sizeof(uv_loop_t));
+	uv_loop_init(loop);
+
+	uv_tcp_t server;
+	int fd, option = 1;
+	
+	uv_tcp_init_ex(loop, &server, AF_INET);
+	uv_fileno((uv_handle_t*)&server, &fd);
+	setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &option, sizeof(option));
+
+	uv_tcp_bind(&server, (struct sockaddr*)arg, 0);
+	uv_listen((uv_stream_t*)&server, CONNECTIONS_COUNT, newConnectionCB);
+	uv_run(loop, UV_RUN_DEFAULT);
+}
+
 Server::Server(const std::string ip, const unsigned short port, const std::string rootDir, const unsigned short threadsCount) {
 	this->threadsCount = threadsCount;
 	this->rootDir = rootDir;
 	root = rootDir;
-
-	uv_loop_t *loop = uv_default_loop();
 	
 	struct sockaddr_in address;
 	uv_ip4_addr(ip.c_str(), port, &address);
 
-	uv_tcp_t server;
+	for (int i = 0; i < threadsCount; i++) {
+		uv_thread_t *worker = (uv_thread_t*)malloc(sizeof(uv_thread_t));
+    	uv_thread_create(worker, test, &address);
+		workers.push_back(worker);
+    }
 
-	uv_tcp_init(loop, &server);
-	uv_tcp_bind(&server, (struct sockaddr*)&address, 0);
-	uv_listen((uv_stream_t*)&server, CONNECTIONS_COUNT, newConnectionCB);
-	uv_run(loop, UV_RUN_DEFAULT);
+	for (auto worker : workers) {
+		uv_thread_join(worker);
+	}
+	std::cout << "server stoped" << std::endl;
 }

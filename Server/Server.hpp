@@ -17,7 +17,7 @@ class Server {
         std::string rootDir;
 
         unsigned short threadsCount;
-        std::vector<uv_work_t*> workers;
+        std::vector<uv_thread_t*> workers;
 };
 
 #endif  // SERVER_HPP
