@@ -47,7 +47,7 @@ void newConnectionCB(uv_stream_t *server, int status) {
 	}
 }
 
-void test(void *arg) {
+void work(void *arg) {
 	uv_loop_t *loop = (uv_loop_t*)malloc(sizeof(uv_loop_t));
 	uv_loop_init(loop);
 
@@ -71,7 +71,7 @@ Server::Server(const std::string ip, const unsigned short port, const std::strin
 
 	for (int i = 0; i < threadsCount; i++) {
 		uv_thread_t *worker = (uv_thread_t*)malloc(sizeof(uv_thread_t));
-    	uv_thread_create(worker, test, &address);
+    	uv_thread_create(worker, work, &address);
 		workers.push_back(worker);
     }
 
